@@ -70,8 +70,6 @@ class ExcelTools:
         """
         endRow = ExcelTools.currentRow + PcdmisTools.dataLen - 1
         endCol = len(dataList) + 5
-        digest  = PcdmisTools.calcDigest(dataList)
-        Dialog.log(f'endRow = {endRow}, endCol = {endCol}, digest = {digest}')
         for col in range(1, endCol):
             for row in range(ExcelTools.currentRow, endRow):
                 if col == 2:
@@ -130,12 +128,11 @@ class ExcelTools:
                     ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.MAGENTA)
                 elif minus != False and nominal <= lower:
                     ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.RED)
-                Dialog.log(f'写数据：{data}')
 
         ExcelTools.currentRow += 1
 
     @staticmethod
-    def fillCellWithColor(row: int, col: int, color: str):
+    def fillCellWithColor(row: int, col: int, color: Colors):
         """
         给单元格填充背景色
 
@@ -144,7 +141,7 @@ class ExcelTools:
             col: 列号
             color: 颜色
         """
-        ExcelTools.sheet.cell(row, col).fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+        ExcelTools.sheet.cell(row, col).fill = PatternFill(start_color=color.value, end_color=color.value, fill_type='solid')
 
     @staticmethod
     def write(serialNumber: str, dataList: list[dict]):
@@ -158,14 +155,15 @@ class ExcelTools:
         if len(dataList) == 0:
             raise CustomException('测量数据为空', CustomException.ERROR)
         
-        digest = PcdmisTools.calcDigest(dataList)
-        if digest == ExcelTools.getDigestFromExcel():
-            Dialog.log('测量项目一致，无需重写表头')
-        else:
+        # 实际记录的摘要为：测量项目字符串摘要 + 本工具版本号
+        digest = PcdmisTools.calcDigest(dataList) + '_' + Constant.Basic.version
+        Dialog.log(f'测量项目的综合特征摘要：{digest}')
+        if digest != ExcelTools.getDigestFromExcel():
             ExcelTools.writeHeader(dataList)
             Dialog.log('写表头')
 
         ExcelTools.writeData(digest, serialNumber, dataList)
+        Dialog.log('写数据')
 
         try:
             ExcelTools.workBook.save(ExcelTools.filePath)
@@ -175,18 +173,3 @@ class ExcelTools:
             raise CustomException(message, CustomException.WARNING)
 
         Dialog.log(f'已导出文件到：{ExcelTools.filePath}', Dialog.INFO)
-
-def test1():
-    '''
-    基础测试
-    '''
-    from constant import Constant
-    version, program = PcdmisTools.connect()
-    print(f'PC-DMIS 版本：{version}，测量程序名：{program}')
-    serialNumber, dataList = PcdmisTools.getData()
-    ExcelTools.openExcel('test.xlsx')
-    ExcelTools.write(serialNumber, dataList)
-
-
-if __name__ == '__main__':
-    test1()
