@@ -1,4 +1,6 @@
-class Colors:
+from enum import Enum
+
+class Colors(Enum):
     WHITE = "FFFFFF"          # 白色
     BLACK = "000000"          # 黑色
     RED = "FF0000"            # 红色
