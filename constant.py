@@ -8,7 +8,7 @@ import sys
 
 description = """
 1 适用：
-    1.1 PC-DMIS 版本：2019 R2（其它未测试）
+    1.1 PC-DMIS 版本：2019 R2、2023.2
     1.2 Windows 版本：Windows 7 以上，不含 Windows 7
 2 使用：
     2.1 请先保证 PC-DMIS 已经启动，且打开了一个测量程序。
@@ -17,12 +17,20 @@ description = """
     2.4 如果选择了不指定，那么导出文件的目录就是当前程序所在目录。
 """
 
+def readText(file: str):
+    with open(
+        os.path.join(sys._MEIPASS, file),
+        'r', encoding='utf-8'
+    ) as f:
+        return f.read()
+
 class Constant:
     class Basic:
         projectName = 'PC-DMIS 数据导出工具'
-        version = '202502020001'
+        buildTimeFile = 'buildTime.txt'
+        version = readText(buildTimeFile) + ' ' if CommonTools.getPackagedStatus() else '未打包'
         author = 'IYATT-yx iyatt@iyatt.com'
-        description = f'{projectName}\n{version}\n{author}\n\n{description}'
+        description = f'{projectName}\n版本：{version}\n作者：{author}\n\n{description}'
         logoName = 'icon.ico'
         logoPath = os.path.join(sys._MEIPASS, logoName) if CommonTools.getPackagedStatus() else logoName
 
