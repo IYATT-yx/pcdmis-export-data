@@ -123,11 +123,19 @@ class ExcelTools:
                     measured
                 )
 
+                if plus >= minus:
+                    upper = nominal + plus
+                    lower = nominal + minus
+                else:
+                    upper = nominal + minus
+                    lower = nominal + plus
+
                 # 超差值设置背景色
-                if nominal >= upper:
-                    ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.MAGENTA)
-                elif minus != False and nominal <= lower:
-                    ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.RED)
+                if plus != minus:
+                    if nominal >= upper:
+                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.MAGENTA)
+                    elif minus != False and nominal <= lower:
+                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.RED)
 
         ExcelTools.currentRow += 1
 
