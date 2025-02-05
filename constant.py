@@ -2,6 +2,8 @@
 常量
 """
 from commontools import CommonTools
+import buildtime
+
 import os
 import logging
 import sys
@@ -17,18 +19,11 @@ description = """
     2.4 如果选择了不指定，那么导出文件的目录就是当前程序所在目录。
 """
 
-def readText(file: str):
-    with open(
-        os.path.join(sys._MEIPASS, file),
-        'r', encoding='utf-8'
-    ) as f:
-        return f.read()
-
 class Constant:
     class Basic:
         projectName = 'PC-DMIS 数据导出工具'
         buildTimeFile = 'buildTime.txt'
-        version = readText(buildTimeFile) + ' ' if CommonTools.getPackagedStatus() else '未打包'
+        version = buildtime.buildTime
         author = 'IYATT-yx iyatt@iyatt.com'
         description = f'{projectName}\n版本：{version}\n作者：{author}\n\n{description}'
         logoName = 'icon.ico'
