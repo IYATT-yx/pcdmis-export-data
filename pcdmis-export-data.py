@@ -1,5 +1,5 @@
 from dialog import Dialog
-from constant import Constant
+import constants
 from customexception import CustomException
 from commontools import CommonTools
 from pcdmistools import PcdmisTools
@@ -44,7 +44,12 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
     Returns:
         str: 导出文件路径
     """
-    exportFileName = f'[{CommonTools.removeFileExtension(name)}][{version}][{CommonTools.getTimeStamp(1)}].xlsx'
+    pcdmisProgramName = CommonTools.removeFileExtension(name)
+    exportFileName = f'[{pcdmisProgramName}][{version}][{CommonTools.getTimeStamp(1)}].xlsx'
+    defaultDir = os.path.join(constants.Path.programFileDir, pcdmisProgramName)
+    if CommonTools.checkFileExist(defaultDir) == False:
+        os.makedirs(defaultDir)
+        Dialog.log(f'创建文件夹：{defaultDir}')
 
     # 指定目录
     if args.directory is not None:
@@ -57,7 +62,7 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
     # 运行时指定目录
     elif args.specifydirectoryatruntime:
         directory = filedialog.askdirectory(
-            initialdir=CommonTools.getMyPath(),
+            initialdir=constants.Path.programFileDir,
             title='选择导出目录',
             mustexist=True
         )
@@ -70,11 +75,11 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
         file: str = args.file.strip()
         if file == '':
             raise CustomException('导出文件路径为空', CustomException.WARNING)            
-        exportFilePath = CommonTools.getAbsPath(file)
+        exportFilePath = os.path.abspath(file)
     # 运行时选择文件
     elif args.specifyfileatruntime:
         file = filedialog.asksaveasfilename(
-            initialdir=CommonTools.getMyPath(),
+            initialdir=constants.Path.programFileDir,
             title='选择导出文件',
             filetypes=[('Excel 工作簿', '*.xlsx')],
             confirmoverwrite=False,
@@ -82,10 +87,10 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
         if file == '':
             Dialog.log('取消选择文件', Dialog.INFO)
             return
-        exportFilePath = CommonTools.getAbsPath(file)
+        exportFilePath = os.path.abspath(file)
     # 不指定文件或文件夹
     elif args.nospecified:
-        exportFilePath = os.path.join(CommonTools.getMyPath(), exportFileName)
+        exportFilePath = os.path.join(defaultDir, exportFileName)
     else:
         raise CustomException('命令行参数错误', CustomException.ERROR)
 
@@ -110,7 +115,7 @@ def uiMode():
     master = tkinter.Tk()
     master.attributes('-topmost', True)
 
-    master.title(Constant.Basic.projectName)
+    master.title(constants.Basic.projectName)
 
     width = 756
     height = 240
@@ -119,7 +124,7 @@ def uiMode():
     master.geometry(f'{width}x{height}+{defaultX}+{defaultY}')
     master.resizable(False, False)
 
-    master.iconbitmap(Constant.Basic.logoPath)
+    master.iconbitmap(constants.Basic.logoPath)
 
     mui = MainUI(master)
     master.mainloop()
@@ -136,7 +141,7 @@ def runWithCatchException(func: Callable):
         Dialog.log(traceback.format_exc(), Dialog.ERROR)
 
 def main():
-    Dialog(Constant.Dialog)
+    Dialog()
     if len(sys.argv) > 1:
         runWithCatchException(cmdMode)
     else:
