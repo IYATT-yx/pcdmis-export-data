@@ -1,7 +1,7 @@
 from pcdmistools import PcdmisTools
 from commontools import CommonTools
 from dialog import Dialog
-from constant import Constant
+import constants
 from customexception import CustomException
 
 import tkinter as tk
@@ -10,7 +10,7 @@ import sys
 from tkinter import filedialog
 import os
 
-Dialog(Constant.Dialog)
+Dialog()
 
 class MainUI(tk.Frame):
     def __init__(self, master: tk.Tk=None):
@@ -102,7 +102,7 @@ class MainUI(tk.Frame):
         浏览文件夹按钮事件回调
         """
         directory = filedialog.askdirectory(
-            initialdir=CommonTools.getMyPath(),
+            initialdir=constants.Path.programFileDir,
             title='选择导出目录',
             mustexist=True
         )
@@ -118,7 +118,7 @@ class MainUI(tk.Frame):
         浏览文件按钮事件回调
         """
         file = filedialog.asksaveasfilename(
-            initialdir=CommonTools.getMyPath(),
+            initialdir=constants.Path.programFileDir,
             title='选择导出文件',
             filetypes=[('Excel 工作簿', '*.xlsx')],
             confirmoverwrite=False
@@ -180,10 +180,7 @@ class MainUI(tk.Frame):
         """
         self.cmdText.delete('1.0', 'end')
         if addExePath:
-            if CommonTools.getPackagedStatus():
-                text = sys.executable + ' ' + text
-            else:
-                text = sys.executable + ' ' + sys.argv[0] + ' ' + text
+            text = constants.Path.executableCommand + ' ' + text
         self.cmdText.insert('1.0', text)
 
     def onFileOptionRadiobutton(self):
@@ -218,7 +215,7 @@ class MainUI(tk.Frame):
         """
         text = tk.Text(tabFrame)
         text.pack(fill='both')
-        text.insert('end', Constant.Basic.description)
+        text.insert('end', constants.Basic.description)
         text.config(state='disabled')
 
 def test1():
