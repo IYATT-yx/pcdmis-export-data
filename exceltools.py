@@ -2,7 +2,7 @@ from commontools import CommonTools
 from dialog import Dialog
 from customexception import CustomException
 from colors import Colors
-from constant import Constant
+import constants
 from topmessagebox import TopMessagebox
 
 import openpyxl
@@ -11,7 +11,7 @@ from openpyxl.styles import PatternFill, Alignment
 from pcdmistools import PcdmisTools
 import tkinter as tk
 
-Dialog(Constant.Dialog)
+Dialog()
 
 class ExcelTools:
     workBook = None
@@ -59,6 +59,10 @@ class ExcelTools:
 
     def setCellWrap(row: int, col: int):
         ExcelTools.sheet.cell(row, col).alignment = Alignment(wrap_text=True)
+
+    @staticmethod
+    def setCellPrecision(cell, precision: int):
+        cell.number_format = '0.' + '0' * precision
     
     @staticmethod
     def writeHeader(dataList: list[dict]):
@@ -68,7 +72,7 @@ class ExcelTools:
         Params:
             dataList: 测量数据列表
         """
-        endRow = ExcelTools.currentRow + PcdmisTools.dataLen - 1
+        endRow = ExcelTools.currentRow + PcdmisTools.dataLen - 3
         endCol = len(dataList) + 5
         for col in range(1, endCol):
             for row in range(ExcelTools.currentRow, endRow):
@@ -79,11 +83,12 @@ class ExcelTools:
                 elif col == 3 or col == 4:
                     ExcelTools.setColWidth(col, 12)
                 elif col > 4:
-                    ExcelTools.sheet.cell(
+                    cell = ExcelTools.sheet.cell(
                         row,
                         col,
                         dataList[col - 5][PcdmisTools.dataKeys[row - ExcelTools.currentRow]]
                     )
+                    ExcelTools.setCellPrecision(cell, constants.Data.precision)
                     ExcelTools.setColWidth(col, 13)
                     ExcelTools.setCellWrap(row, col)
         ExcelTools.currentRow = endRow
@@ -111,31 +116,37 @@ class ExcelTools:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(3))
             else:
                 data = dataList[col - 5]
-                nominal = data[PcdmisTools.dataKeys[4]]
-                plus = data[PcdmisTools.dataKeys[5]]
-                minus = data[PcdmisTools.dataKeys[6]]
-                measured = data[PcdmisTools.dataKeys[-1]]
-                upper = nominal + plus
-                lower = nominal + minus
-                ExcelTools.sheet.cell(
+                nominal = data['标称值']
+                plus = data['上公差']
+                minus = data['下公差']
+                measured = data['实测值']
+                bonus = data['补偿值']
+                dataType = data['类型']
+
+                cell = ExcelTools.sheet.cell(
                     ExcelTools.currentRow,
                     col,
                     measured
                 )
 
-                if plus >= minus:
-                    upper = nominal + plus
-                    lower = nominal + minus
-                else:
-                    upper = nominal + minus
-                    lower = nominal + plus
+                ExcelTools.setCellPrecision(cell, constants.Data.precision)
 
-                # 超差值设置背景色
-                if plus != minus:
-                    if nominal >= upper:
-                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.MAGENTA)
-                    elif minus != False and nominal <= lower:
-                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, Colors.RED)
+                if dataType == PcdmisTools.dataType.FCF:
+                    if measured > nominal + plus + bonus:
+                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
+                else:
+                    if plus >= minus:
+                        upper = nominal + plus
+                        lower = nominal + minus
+                    else:
+                        upper = nominal + minus
+                        lower = nominal + plus
+
+                    if plus != minus:
+                        if measured >= upper:
+                            ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
+                        elif measured <= lower:
+                            ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.underMinusColor)
 
         ExcelTools.currentRow += 1
 
@@ -164,7 +175,7 @@ class ExcelTools:
             raise CustomException('测量数据为空', CustomException.ERROR)
         
         # 实际记录的摘要为：测量项目字符串摘要 + 本工具版本号
-        digest = PcdmisTools.calcDigest(dataList) + '_' + Constant.Basic.version
+        digest = PcdmisTools.calcDigest(dataList) + '_' + constants.Basic.version
         Dialog.log(f'测量项目的综合特征摘要：{digest}')
         if digest != ExcelTools.getDigestFromExcel():
             ExcelTools.writeHeader(dataList)
