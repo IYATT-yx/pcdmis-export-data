@@ -1,20 +1,22 @@
 """
 PC-DMIS 版本:
+                    2018 R1
                     2019 R2
                     2023.2
                     
 """
 from customexception import CustomException
 from dialog import Dialog
-from constant import Constant
+import constants
 
 import win32com.client as wc
 import hashlib
 import re
 import importlib
 from types import MethodType
+from enum import Enum, auto
 
-Dialog(Constant.Dialog)
+Dialog()
 
 class PcdmisTools:
     app = None
@@ -22,7 +24,6 @@ class PcdmisTools:
     cmds = None
     pdconst = None
     pivotVersion = '2022'
-    getDimensionFromCmd: MethodType = None
     getFcfFromCmd: MethodType = None
 
     @staticmethod
@@ -38,12 +39,10 @@ class PcdmisTools:
     def initPcdlrnTools(version: str):
         if version >= PcdmisTools.pivotVersion:
             PcdmisTools.importPcdlrnConst('2023.2')
-            PcdmisTools.getDimensionFromCmd = PcdmisTools.getDimensionFromCmd20232
             PcdmisTools.getFcfFromCmd = PcdmisTools.getFcfFromCmd20232
         else:
             PcdmisTools.importPcdlrnConst('2019 R2')
-            PcdmisTools.getDimensionFromCmd = PcdmisTools.getDimensionFromCmd2019R2
-            PcdmisTools.getFcfFromCmd = PcdmisTools.getDimensionFromCmd2019R2
+            PcdmisTools.getFcfFromCmd = PcdmisTools.getFcfFromCmd2019R2
 
     @staticmethod
     def connect() -> tuple[str, str]:
@@ -83,77 +82,27 @@ class PcdmisTools:
         '标称值': None,
         '上公差': None,
         '下公差': None,
+        '上限值': None,
+        '下限值': None,
         '实测值': None,
+        '补偿值': None,
+        '类型': None
     }
+
+    class dataType(Enum):
+        DIMENSION = auto()
+        FCF = auto()
+        FCFDIM = auto()
 
     dataKeys = list(data.keys())
     dataLen = len(dataKeys)
 
     @staticmethod
-    def getDimensionFromCmd2019R2(idx, cmd, precision) -> list[dict]:
-        """
-        从测量命令对象中获取尺寸数据
-
-        Params:
-            cmd: 测量命令对象
-            precision: 浮点数精度
-
-        Returns:
-            [ {'命令名': , '特征': , '轴': , '单位': , '标称值': , '上公差': , '下公差': , '实测值': } ]
-        """
-        if not cmd.isDimension:
-            return None, idx
-
-        dim = cmd.DimensionCommand
-        if dim is None:
-            Dialog.log('获取尺寸对象失败', Dialog.WARNING)
-            return None, idx
-        
-        id = cmd.ID
-        unit = cmd.GetFieldValue(PcdmisTools.pdconst.UNIT_TYPE, 0)
-        # 获取单位失败的话，这个命令可能是一个基准，直接跳过
-        if unit == False:
-            return None, idx
-        
-        # 位置的特征名和尺寸数据不在同一条命令中，但在相邻命令
-        if len(id) != 0:
-            PcdmisTools.data['命令名'] = cmd.ID
-            PcdmisTools.data['特征'] = dim.Feat1 + \
-                                    (' - ' + dim.Feat2 if dim.Feat2 else '')  + \
-                                    (' - ' + dim.Feat3 if dim.Feat3 else '')
-            PcdmisTools.data['单位'] = unit
-            PcdmisTools.data['单位'] = unit
-        # 如果当前命令读取 AxisLetter 失败，那么这个命令就读取不到尺寸数据
-        axisLetter = cmd.GetFieldValue(PcdmisTools.pdconst.AXIS, 0)
-        if axisLetter != False:
-            PcdmisTools.data['轴'] = axisLetter
-
-            nominal = dim.NOMINAL
-            if nominal != False:
-                nominal = round(nominal, precision)
-            PcdmisTools.data['标称值'] = nominal
-
-            plus = dim.Plus
-            if plus != False:
-                plus = round(plus, precision)
-            PcdmisTools.data['上公差'] = plus
-
-            minus = dim.Minus
-            if minus != False:
-                minus = round(minus, precision)
-            PcdmisTools.data['下公差'] = minus
-
-            measured = dim.Measured
-            if measured != False:
-                measured = round(measured, precision)
-            PcdmisTools.data['实测值'] = measured
-
-            return [PcdmisTools.data.copy()], idx
-        
-        return None, idx
+    def clearData():
+        PcdmisTools.data = {key: None for key in PcdmisTools.data.keys()}
 
     @staticmethod
-    def getDimensionFromCmd20232(idx, cmd, precision) -> list[dict]:
+    def getDimensionFromCmd(idx, cmd, precision) -> list[dict]:
         """
         从测量命令对象中获取尺寸数据
 
@@ -162,7 +111,7 @@ class PcdmisTools:
             precision: 浮点数精度
 
         Returns:
-            [ {'命令名': , '特征': , '轴': , '单位': , '标称值': , '上公差': , '下公差': , '实测值': } ]
+            list[dict]
         """
         if not cmd.isDimension:
             return None, idx
@@ -175,6 +124,7 @@ class PcdmisTools:
         datas = []
         measured = cmd.GetFieldValue(PcdmisTools.pdconst.DIM_MEASURED, 0)
         if measured != False: # 排除形位公差和基准
+            PcdmisTools.clearData()
             PcdmisTools.data['命令名'] = dim.ID
             PcdmisTools.data['特征'] = dim.Feat1 + ' ' + dim.Feat2 + ' ' + dim.Feat3
             PcdmisTools.data['单位'] = cmd.GetFieldValue(PcdmisTools.pdconst.UNIT_TYPE, 0)
@@ -186,9 +136,13 @@ class PcdmisTools:
             PcdmisTools.data['标称值'] = round(dim.NOMINAL, precision)
             PcdmisTools.data['上公差'] = round(dim.Plus, precision)
             PcdmisTools.data['下公差'] = round(dim.Minus, precision)
+            PcdmisTools.data['上限值'] = round(dim.NOMINAL + dim.Plus, precision)
+            PcdmisTools.data['下限值'] = round(dim.NOMINAL + dim.Minus, precision)
             PcdmisTools.data['实测值'] = round(dim.Measured, precision)
+            PcdmisTools.data['补偿值'] = round(dim.Bonus, precision)
+            PcdmisTools.data['类型'] = PcdmisTools.dataType.DIMENSION
             datas.append(PcdmisTools.data.copy())
-        return datas, idx   
+        return datas, idx
     
     @staticmethod
     def getFcfFromCmd2019R2(idx, cmd, precision) -> list[dict]:
@@ -200,50 +154,77 @@ class PcdmisTools:
             precision: 浮点数精度
 
         Returns:
-            [ {'命令名': , '特征': , '轴': , '单位': , '标称值': , '上公差': , '下公差': , '实测值': } ]
+            list[dict]
         """
         if not cmd.isFCFCommand:
             return None, idx
         
-        fcfDatas = []
-        data = {
-            '命令名': cmd.ID,
-            '特征': None,
-            '轴': None,
-            '单位': cmd.GetFieldValue(PcdmisTools.pdconst.UNIT_TYPE, 0),
-            '标称值': None,
-            '上公差': None,
-            '下公差': None,
-            '实测值': None,
-        }
+        datas = []
 
+        # 形位公差评价对象自身的尺寸信息
+        for i in range(1, cmd.GetDataTypeCount(PcdmisTools.pdconst.LINE1_MEAS) + 1):
+            PcdmisTools.clearData()
+            PcdmisTools.data['单位'] = cmd.GetFieldValue(PcdmisTools.pdconst.UNIT_TYPE, 0)
+            PcdmisTools.data['命令名'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_TBLHDR, i)
+            PcdmisTools.data['特征'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_FEATNAME, i)
+            PcdmisTools.data['轴'] = None
+
+            nominal = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_NOMINAL, i)
+            PcdmisTools.data['标称值'] = round(nominal, precision)
+
+            plus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_PLUSTOL, i)
+            PcdmisTools.data['上公差'] = round(plus, precision)
+
+            minustol = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_MINUSTOL, i)
+            PcdmisTools.data['下公差'] = round(minustol, precision)
+
+            meas = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_MEAS, i)
+            PcdmisTools.data['实测值'] = round(meas, precision)
+
+            bonus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_BONUS, i)
+            PcdmisTools.data['补偿值'] = round(bonus, precision)
+
+            PcdmisTools.data['类型'] = PcdmisTools.dataType.FCFDIM
+
+            datas.append(PcdmisTools.data.copy())
+
+        # 形位公差
         for i in range(1, cmd.GetDataTypeCount(PcdmisTools.pdconst.LINE2_MEAS) + 1):
-            data['特征'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_FEATNAME, i)
-            data['轴'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_AXIS, i)
+            PcdmisTools.clearData()
+            PcdmisTools.data['单位'] = cmd.GetFieldValue(PcdmisTools.pdconst.UNIT_TYPE, 0)
+
+            runoutType = cmd.GetFieldValue(PcdmisTools.pdconst.FCF_RUNOUT_TYPE, i)
+            if runoutType == False:
+                runoutType = ''
+            else:
+                runoutType = ' - ' + runoutType
+
+            PcdmisTools.data['命令名'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_TBLHDR, i) + runoutType
+            PcdmisTools.data['特征'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_FEATNAME, i)
+            PcdmisTools.data['轴'] = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_AXIS, i)
 
             nominal = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_NOMINAL, i)
-            if nominal != False:
-                nominal = round(nominal, precision)
-            data['标称值'] = nominal
+            PcdmisTools.data['标称值'] = round(nominal, precision)
 
             plus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_PLUSTOL, i)
-            if plus != False:
-                plus = round(plus, precision)
-            data['上公差'] = plus
+            PcdmisTools.data['上公差'] = round(plus, precision)
 
             minustol = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_MINUSTOL, i)
-            if minustol != False:
-                minustol = round(minustol, precision)
-            data['下公差'] = minustol
+            PcdmisTools.data['下公差'] = round(minustol, precision)
+
+            PcdmisTools.data['上限值'] = PcdmisTools.data['上公差']
 
             meas = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_MEAS, i)
-            if meas != False:
-                meas = round(meas, precision)
-            data['实测值'] = meas
+            PcdmisTools.data['实测值'] = round(meas, precision)
 
-            fcfDatas.append(data.copy())
+            bonus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_BONUS, i)
+            PcdmisTools.data['补偿值'] = round(bonus, precision)
 
-        return fcfDatas, idx
+            PcdmisTools.data['类型'] = PcdmisTools.dataType.FCF
+
+            datas.append(PcdmisTools.data.copy())
+
+        return datas, idx
 
     @staticmethod
     def getFcfFromCmd20232(idx, cmd, precision) -> list[dict]:
@@ -255,7 +236,7 @@ class PcdmisTools:
             precision: 浮点数精度
 
         Returns:
-            [ {'命令名': , '特征': , '轴': , '单位': , '标称值': , '上公差': , '下公差': , '实测值': } ]
+            list[dict]
         """
         if not cmd.IsToleranceCommand:
             return None, idx
@@ -292,15 +273,12 @@ class PcdmisTools:
         return fcfDatas, idx
 
     @staticmethod
-    def getData(precision: int = 4) -> tuple[str, list[dict]]:
+    def getData() -> tuple[str, list[dict]]:
         """
         获取尺寸和形位公差数据
 
-        Params:
-            precision: 浮点数精度
-
         Returns:
-            (序列号, [{'命令名': , '特征': , '轴': , '单位': , '标称值': , '上公差': , '下公差': , '实测值': }])
+            (序列号, list[dict])
         """
         if PcdmisTools.cmds is None:
             raise CustomException('请先连接 PC-DMIS 程序后，再获取数据', CustomException.WARNING)
@@ -309,10 +287,10 @@ class PcdmisTools:
         idx = 0
         while idx < PcdmisTools.cmds.Count:
             cmd = PcdmisTools.cmds[idx]
-            dimensionData, idx = PcdmisTools.getDimensionFromCmd(idx, cmd, precision)
+            dimensionData, idx = PcdmisTools.getDimensionFromCmd(idx, cmd, constants.Data.precision)
             if dimensionData is not None:
                 dataList += dimensionData
-            fcfDatas, idx = PcdmisTools.getFcfFromCmd(idx, cmd, precision)
+            fcfDatas, idx = PcdmisTools.getFcfFromCmd(idx, cmd, constants.Data.precision)
             if fcfDatas is not None:
                 dataList += fcfDatas
             idx += 1
