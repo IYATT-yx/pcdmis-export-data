@@ -1,3 +1,5 @@
+import constants
+
 import os
 import sys
 import time
@@ -5,26 +7,6 @@ import pathlib
 import ctypes
 
 class CommonTools:
-    @staticmethod
-    def getHomePath() -> str:
-        """
-        获取家目录
-
-        Returns:
-            str: 家目录路径
-        """
-        return os.path.expanduser("~")
-    
-    @staticmethod
-    def getPackagedStatus():
-        """
-        获取打包状态
-
-        Returns:
-            bool: 是否为打包状态
-        """
-        return getattr(sys, 'frozen', False)
-    
     @staticmethod
     def checkFileExist(filePath: str) -> bool:
         """
@@ -59,33 +41,6 @@ class CommonTools:
             case 3:
                 return time.strftime("%H:%M:%S", time.localtime())
 
-            
-    @staticmethod
-    def getAbsPath(filePath: str) -> str:
-        """
-        获取绝对路径
-
-        Params:
-            filePath (str): 文件路径
-
-        Returns:
-            str: 绝对路径
-        """
-        return os.path.abspath(filePath)
-    
-    @staticmethod
-    def getMyPath() -> str:
-        """
-        获取当前文件路径
-
-        Returns:
-            str: 当前文件路径
-        """
-        if CommonTools.getPackagedStatus():
-            return os.path.dirname(CommonTools.getAbsPath(sys.executable))
-        else:
-            return os.path.dirname(CommonTools.getAbsPath(__file__))
-        
     @staticmethod
     def removeFileExtension(path: str) -> str:
         """
@@ -93,20 +48,6 @@ class CommonTools:
         """
         return pathlib.Path(path).stem
     
-    # @staticmethod
-    # def setFileReadOnly(filePath: str, readonly: bool = True):
-    #     """
-    #     设置文件只读
-
-    #     Params:
-    #         filePath (str): 文件路径
-    #         readonly (bool): 是否只读
-    #     """
-    #     if readonly:
-    #         os.chmod(filePath, 0o444)
-    #     else:
-    #         os.chmod(filePath, 0o777)
-
     @staticmethod
     def quotingArgs(args: list[str]) -> str:
         """
@@ -145,11 +86,11 @@ class CommonTools:
             return None, '已经是管理员'
         
         try:
-            if CommonTools.getPackagedStatus():
+            if constants.Status.packaged:
                 params = CommonTools.quotingArgs(sys.argv[1:])
             else:
                 params = CommonTools.quotingArgs(sys.argv)
-            result = ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+            result = ctypes.windll.shell32.ShellExecuteW(None, "runas", constants.Path.executableFilePath, params, None, 1)
             if result > 32:
                 return True, '以管理员运行成功'
             else:
