@@ -1,4 +1,4 @@
-from constant import Constant
+import constants
 from topmessagebox import TopMessagebox
 
 import logging
@@ -11,12 +11,9 @@ class Dialog:
     ERROR: int = logging.ERROR
     CRITICAL: int = logging.CRITICAL
 
-    def __init__(self, config: Constant.Dialog):
+    def __init__(self):
         """
         日志记录器初始化
-
-        Params:
-            config: 日志配置信息
         """
         # 用上级调用者所在的模块名称作为日志记录器名称
         loggerName = inspect.getmodule(inspect.currentframe().f_back).__name__
@@ -24,15 +21,15 @@ class Dialog:
         if logger.hasHandlers():
             return
         # 文件输出日志
-        fileHandler = logging.FileHandler(config.dialogPath, encoding=config.dialogEncoding)
+        fileHandler = logging.FileHandler(constants.Dialog.dialogPath, encoding=constants.Dialog.dialogEncoding)
         # 控制台输出日志
         streamHandler = logging.StreamHandler()
-        formatter = logging.Formatter(config.dialogFormat, config.dateFormat)
+        formatter = logging.Formatter(constants.Dialog.dialogFormat, constants.Dialog.dateFormat)
         fileHandler.setFormatter(formatter)
         streamHandler.setFormatter(formatter)
         logger.addHandler(fileHandler)
         logger.addHandler(streamHandler)
-        logger.setLevel(config.dialogLevel)
+        logger.setLevel(constants.Dialog.dialogLevel)
 
     @staticmethod
     def log(message: str, dialogLevel: int = DEBUG):
