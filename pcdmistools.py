@@ -61,16 +61,13 @@ class PcdmisTools:
             else:
                 Dialog.log(f'连接 PC-DMIS 成功，版本：{PcdmisTools.app.VersionString}')
         
-        if PcdmisTools.part is not None:
-            Dialog.log(f'已经连接 PC-DMIS 程序')
+        PcdmisTools.part = PcdmisTools.app.ActivePartProgram
+        PcdmisTools.cmds = PcdmisTools.part.Commands
+        if PcdmisTools.part is None:
+            raise CustomException('获取当前程序失败', CustomException.CRITICAL)
         else:
-            PcdmisTools.part = PcdmisTools.app.ActivePartProgram
-            PcdmisTools.cmds = PcdmisTools.part.Commands
-            if PcdmisTools.part is None:
-                raise CustomException('获取当前程序失败', CustomException.CRITICAL)
-            else:
-                Dialog.log(f'连接 PC-DMIS 程序成功，程序名：{PcdmisTools.part.Name}')
-                PcdmisTools.initPcdlrnTools(PcdmisTools.app.VersionString)
+            Dialog.log(f'连接 PC-DMIS 程序成功，程序名：{PcdmisTools.part.Name}')
+            PcdmisTools.initPcdlrnTools(PcdmisTools.app.VersionString)
 
         return PcdmisTools.app.VersionString, PcdmisTools.part.Name
     
