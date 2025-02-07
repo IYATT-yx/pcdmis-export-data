@@ -326,8 +326,15 @@ class PcdmisTools:
         """
         if PcdmisTools.cmds is None:
             raise CustomException('请先连接 PC-DMIS 程序后，再添加命令', CustomException.WARNING)
-        cmd = PcdmisTools.cmds.Add(PcdmisTools.pdconst.EXTERNAL_COMMAND, True)
+        
+        # 获取最后一条命令
+        cmdNumber = PcdmisTools.cmds.Count
+        endCmd = PcdmisTools.cmds[cmdNumber - 1]
 
+        # 将插入点设置到最后一条命令之后
+        PcdmisTools.cmds.InsertionPointAfter(endCmd)
+
+        cmd = PcdmisTools.cmds.Add(PcdmisTools.pdconst.EXTERNAL_COMMAND, True)
         cmd.PutText(exePath, PcdmisTools.pdconst.COMMAND_STRING, 0)
         cmd.PutText('不显示', PcdmisTools.pdconst.DISPLAY_TRACE, 0)
         cmd.PutText('等待', PcdmisTools.pdconst.TRACE_NAME, 0)
