@@ -190,5 +190,3 @@ class ExcelTools:
             message = '权限不足，无法保存文件。\n如果 Excel 打开了该文件，请关闭后重试！'
             TopMessagebox.show('无法保存文件', message, TopMessagebox.WARNING)
             raise CustomException(message, CustomException.WARNING)
-
-        Dialog.log(f'已导出文件到：{ExcelTools.filePath}', Dialog.INFO)
