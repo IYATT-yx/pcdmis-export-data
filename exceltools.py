@@ -83,10 +83,13 @@ class ExcelTools:
                 elif col == 3 or col == 4:
                     ExcelTools.setColWidth(col, 12)
                 elif col > 4:
+                    value = dataList[col - 5][PcdmisTools.dataKeys[row - ExcelTools.currentRow]]
+                    if value == 0:
+                        value = ''
                     cell = ExcelTools.sheet.cell(
                         row,
                         col,
-                        dataList[col - 5][PcdmisTools.dataKeys[row - ExcelTools.currentRow]]
+                        value
                     )
                     ExcelTools.setCellPrecision(cell, constants.Data.precision)
                     ExcelTools.setColWidth(col, 13)
