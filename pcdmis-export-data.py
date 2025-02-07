@@ -14,6 +14,7 @@ from typing import Callable
 import traceback
 from tkinter import filedialog
 import os
+import datetime
 
 def argumentParser() -> argparse.Namespace:
     """
@@ -100,6 +101,7 @@ def cmdMode():
     """
     命令模式
     """
+    startTime = datetime.datetime.now()
     args = argumentParser()
     pcdmisVersion, programName = PcdmisTools.connect()
     exportFilePath = generateExportFilePath(args, pcdmisVersion, programName)
@@ -107,6 +109,9 @@ def cmdMode():
     serialNumber, dataList = PcdmisTools.getData()
     ExcelTools.openExcel(exportFilePath)
     ExcelTools.write(serialNumber, dataList)
+
+    executionTime = datetime.datetime.now() - startTime
+    Dialog.log(f'导出文件到：{exportFilePath}，耗时：{executionTime}', Dialog.INFO)
 
 def uiMode():
     """
@@ -144,9 +149,11 @@ def main():
     Dialog()
     if len(sys.argv) > 1:
         runWithCatchException(cmdMode)
+        Dialog.log('命令模式结束', Dialog.DEBUG)
     else:
         runWithCatchException(uiMode)
-    Dialog.log('程序结束', Dialog.DEBUG)
+        Dialog.log('图形界面模式结束', Dialog.DEBUG)
+    
 
 if __name__ == '__main__':
     status, error =CommonTools.runAsAdmin()
