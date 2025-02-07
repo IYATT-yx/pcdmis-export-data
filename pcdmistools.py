@@ -132,12 +132,14 @@ class PcdmisTools:
             PcdmisTools.data['轴'] = dim.AxisLetter
             PcdmisTools.data['标称值'] = round(dim.NOMINAL, precision)
             PcdmisTools.data['上公差'] = round(dim.Plus, precision)
-            PcdmisTools.data['下公差'] = round(dim.Minus, precision)
+            PcdmisTools.data['下公差'] = -round(dim.Minus, precision) # 下公差默认正数表示负数，用负数表示正数
             PcdmisTools.data['上限值'] = round(dim.NOMINAL + dim.Plus, precision)
-            PcdmisTools.data['下限值'] = round(dim.NOMINAL + dim.Minus, precision)
+            PcdmisTools.data['下限值'] = round(dim.NOMINAL - dim.Minus, precision)
             PcdmisTools.data['实测值'] = round(dim.Measured, precision)
             PcdmisTools.data['补偿值'] = round(dim.Bonus, precision)
             PcdmisTools.data['类型'] = PcdmisTools.dataType.DIMENSION
+
+            Dialog.log(f'读取到：{PcdmisTools.data}')
             datas.append(PcdmisTools.data.copy())
         return datas, idx
     
@@ -168,21 +170,19 @@ class PcdmisTools:
 
             nominal = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_NOMINAL, i)
             PcdmisTools.data['标称值'] = round(nominal, precision)
-
             plus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_PLUSTOL, i)
             PcdmisTools.data['上公差'] = round(plus, precision)
-
             minustol = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_MINUSTOL, i)
-            PcdmisTools.data['下公差'] = round(minustol, precision)
-
+            PcdmisTools.data['下公差'] = -round(minustol, precision)
+            PcdmisTools.data['上限值'] = round(nominal + plus, precision)
+            PcdmisTools.data['下限值'] = round(nominal - minustol, precision)
             meas = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_MEAS, i)
             PcdmisTools.data['实测值'] = round(meas, precision)
-
             bonus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE1_BONUS, i)
             PcdmisTools.data['补偿值'] = round(bonus, precision)
-
             PcdmisTools.data['类型'] = PcdmisTools.dataType.FCFDIM
 
+            Dialog.log(f'读取到：{PcdmisTools.data}')
             datas.append(PcdmisTools.data.copy())
 
         # 形位公差
@@ -202,23 +202,17 @@ class PcdmisTools:
 
             nominal = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_NOMINAL, i)
             PcdmisTools.data['标称值'] = round(nominal, precision)
-
             plus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_PLUSTOL, i)
             PcdmisTools.data['上公差'] = round(plus, precision)
-
             minustol = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_MINUSTOL, i)
-            PcdmisTools.data['下公差'] = round(minustol, precision)
-
             PcdmisTools.data['上限值'] = PcdmisTools.data['上公差']
-
             meas = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_MEAS, i)
             PcdmisTools.data['实测值'] = round(meas, precision)
-
             bonus = cmd.GetFieldValue(PcdmisTools.pdconst.LINE2_BONUS, i)
             PcdmisTools.data['补偿值'] = round(bonus, precision)
-
             PcdmisTools.data['类型'] = PcdmisTools.dataType.FCF
 
+            Dialog.log(f'读取到：{PcdmisTools.data}')
             datas.append(PcdmisTools.data.copy())
 
         return datas, idx
@@ -239,35 +233,45 @@ class PcdmisTools:
             return None, idx
         tolCmd = cmd.ToleranceCommand
 
-        fcfDatas = []
+        datas = []
 
+        # 形位公差评价对象自身的尺寸信息
         for i in range(1, tolCmd.sizeCountCombined + 1):
-            data = {
-                '命令名': tolCmd.ID,
-                '特征': tolCmd.sizeText(i),
-                '轴': tolCmd.SizeAxis(i),
-                '单位': tolCmd.ReportUnits,
-                '标称值': round(tolCmd.sizeNominal(i), precision),
-                '上公差': round(tolCmd.sizePlusTol(i), precision),
-                '下公差': round(tolCmd.sizeMinusTol(i), precision),
-                '实测值': round(tolCmd.sizeMeasured(i), precision),
-            }
-            fcfDatas.append(data.copy())
+            PcdmisTools.clearData()
+            PcdmisTools.data['命令名'] = tolCmd.ID + ' 尺寸'
+            PcdmisTools.data['特征'] = tolCmd.sizeText(i)
+            PcdmisTools.data['轴'] = tolCmd.SizeAxis(i)
+            PcdmisTools.data['单位'] = tolCmd.ReportUnits
+            PcdmisTools.data['标称值'] = round(tolCmd.sizeNominal(i), precision)
+            PcdmisTools.data['上公差'] = round(tolCmd.sizePlusTol(i), precision)
+            PcdmisTools.data['下公差'] = round(tolCmd.sizeMinusTol(i), precision)
+            PcdmisTools.data['上限值'] = round(tolCmd.sizeNominal(i) + tolCmd.sizePlusTol(i), precision)
+            PcdmisTools.data['下限值'] = round(tolCmd.sizeNominal(i) + tolCmd.sizeMinusTol(i), precision)
+            PcdmisTools.data['实测值'] = round(tolCmd.sizeMeasured(i), precision)
+            PcdmisTools.data['类型'] = PcdmisTools.dataType.FCFDIM
 
+            Dialog.log(f'读取到：{PcdmisTools.data}')
+            datas.append(PcdmisTools.data.copy())
+
+        # 形位公差
         for i in range(1, tolCmd.SegmentCount + 1):
-            for j in range(1, tolCmd.SegmentCount + 1):
-                data = {
-                    '命令名': tolCmd.ID,
-                    '特征': tolCmd.FeatureID(j),
-                    '轴': tolCmd.SegmentAxis(j),
-                    '单位': tolCmd.ReportUnits,
-                    '标称值': round(tolCmd.segmentDimNominal(i, j), precision),
-                    '上公差': round(tolCmd.segmentDimPlusTol(i, j), precision),
-                    '下公差': round(tolCmd.segmentDimMinusTol(i, j), precision),
-                    '实测值': round(tolCmd.segmentDimMeasured(i, j), precision),
-                }
-                fcfDatas.append(data.copy())
-        return fcfDatas, idx
+            for j in range(1, tolCmd.FeatureCount + 1):
+                PcdmisTools.clearData()
+                PcdmisTools.data['命令名'] = tolCmd.ID
+                PcdmisTools.data['特征'] = tolCmd.FeatureID(j)
+                PcdmisTools.data['轴'] = tolCmd.SegmentAxis(j)
+                PcdmisTools.data['单位'] = tolCmd.ReportUnits
+                PcdmisTools.data['标称值'] = round(tolCmd.segmentDimNominal(i, j), precision)
+                PcdmisTools.data['上公差'] = round(tolCmd.segmentDimPlusTol(i, j), precision)
+                PcdmisTools.data['上限值'] = PcdmisTools.data['上公差']
+                PcdmisTools.data['实测值'] = round(tolCmd.segmentDimMeasured(i, j), precision)
+                PcdmisTools.data['补偿值'] = round(tolCmd.SegmentDimBonus(i, j), precision)
+                PcdmisTools.data['类型'] = PcdmisTools.dataType.FCF
+
+                Dialog.log(f'读取到：{PcdmisTools.data}')
+                datas.append(PcdmisTools.data.copy())
+
+        return datas, idx
 
     @staticmethod
     def getData() -> tuple[str, list[dict]]:
