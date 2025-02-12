@@ -103,4 +103,16 @@ class CommonTools:
         except Exception as e:
             return False, f'以管理员身份运行时发生错误：{e}'
 
-    
+    @staticmethod
+    def setFileReadOnly(filePath: str, readonly: bool = True):
+        """
+        设置文件只读
+
+        Params:
+            filePath (str): 文件路径
+            readonly (bool): 是否只读
+        """
+        if readonly:
+            os.chmod(filePath, 0o444)
+        else:
+            os.chmod(filePath, 0o777)
