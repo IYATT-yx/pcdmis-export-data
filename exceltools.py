@@ -30,6 +30,7 @@ class ExcelTools:
         """
         if CommonTools.checkFileExist(filePath):
             Dialog.log(f'{filePath} 已存在，加载文件')
+            CommonTools.setFileReadOnly(filePath, False) # 打开文件前先解除只读
             ExcelTools.workBook = openpyxl.load_workbook(filePath)
         else:
             Dialog.log(f'{filePath} 不存在，创建新文件')
@@ -187,9 +188,5 @@ class ExcelTools:
         ExcelTools.writeData(digest, serialNumber, dataList)
         Dialog.log('写数据')
 
-        try:
-            ExcelTools.workBook.save(ExcelTools.filePath)
-        except PermissionError:
-            message = '权限不足，无法保存文件。\n如果 Excel 打开了该文件，请关闭后重试！'
-            TopMessagebox.show('无法保存文件', message, TopMessagebox.WARNING)
-            raise CustomException(message, CustomException.WARNING)
+        ExcelTools.workBook.save(ExcelTools.filePath)
+        CommonTools.setFileReadOnly(ExcelTools.filePath) # 设置文件只读
