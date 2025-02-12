@@ -30,7 +30,6 @@ def argumentParser() -> argparse.Namespace:
     fileGroup.add_argument('-f', '--file', type=str, help='指定导出文件')
     fileGroup.add_argument('-fr', '--specifyfileatruntime', action='store_true', help='运行时指定导出文件')
     fileGroup.add_argument('-n', '--nospecified', action='store_true', help='不指定导出文件或目录')
-    fileGroup
     return parser.parse_args()
 
 def generateExportFilePath(args: argparse.Namespace, version: str, name: str) -> str:
@@ -111,7 +110,7 @@ def cmdMode():
     ExcelTools.write(serialNumber, dataList)
 
     executionTime = datetime.datetime.now() - startTime
-    Dialog.log(f'导出文件到：{exportFilePath}，耗时：{executionTime}', Dialog.INFO)
+    Dialog.log(f'导出文件到：{exportFilePath}，耗时：{executionTime}')
 
 def uiMode():
     """
