@@ -8,6 +8,7 @@ PC-DMIS 版本:
 from customexception import CustomException
 from dialog import Dialog
 import constants
+from topmessagebox import TopMessagebox
 
 import win32com.client as wc
 import hashlib
@@ -15,6 +16,7 @@ import re
 import importlib
 from types import MethodType
 from enum import Enum, auto
+import pywintypes
 
 Dialog()
 
@@ -55,11 +57,16 @@ class PcdmisTools:
         if PcdmisTools.app is not None:
             Dialog.log('PC-DMIS 已经连接')
         else:
-            PcdmisTools.app = wc.Dispatch('PCDLRN.Application')
-            if PcdmisTools.app is None:
-                raise CustomException('连接 PC-DMIS 失败', CustomException.CRITICAL)
-            else:
-                Dialog.log(f'连接 PC-DMIS 成功，版本：{PcdmisTools.app.VersionString}')
+            try:
+                PcdmisTools.app = wc.Dispatch('PCDLRN.Application')
+            except pywintypes.com_error as e:
+                if e.hresult == -2147221021 or e.hresult == -2146959355:
+                    msg = '请确保PC-DMIS已经以管理员身份运行'
+                    TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
+                    raise CustomException(msg, CustomException.ERROR)
+                else:
+                    raise CustomException('连接 PC-DMIS 失败', CustomException.ERROR)
+            Dialog.log(f'连接 PC-DMIS 成功，版本：{PcdmisTools.app.VersionString}')
         
         PcdmisTools.part = PcdmisTools.app.ActivePartProgram
         PcdmisTools.cmds = PcdmisTools.part.Commands
@@ -315,9 +322,11 @@ class PcdmisTools:
             raise CustomException('数据为空', CustomException.ERROR)
         sumaryString = ''
         for data in dataList:
-            values = list(data.values())[:-1] # 最后一个键值是测量结果，取测量项目时不需要
-            for value in values:
+            for key, value in data.items():
+                if key in ['上限值', '下限值', '补偿值', '实测值']:
+                    continue
                 sumaryString += f'{value}'
+        Dialog.log(f'特征字符串：{sumaryString}')
         return hashlib.sha256(sumaryString.encode('utf-8')).hexdigest()
     
     @staticmethod
