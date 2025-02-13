@@ -45,7 +45,7 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
         str: 导出文件路径
     """
     pcdmisProgramName = CommonTools.removeFileExtension(name)
-    exportFileName = f'[{pcdmisProgramName}][{version}][{CommonTools.getTimeStamp(1)}].xlsx'
+    exportFileName = f'({pcdmisProgramName})({version})({CommonTools.getTimeStamp(1)}).xlsx'
     defaultDir = os.path.join(constants.Path.programFileDir, pcdmisProgramName)
     if CommonTools.checkFileExist(defaultDir) == False:
         os.makedirs(defaultDir)
