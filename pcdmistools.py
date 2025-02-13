@@ -303,7 +303,7 @@ class PcdmisTools:
                 dataList += fcfDatas
             idx += 1
 
-        serialNumber = PcdmisTools.cmds[0].GetFieldValue(PcdmisTools.pdconst.SERIAL_NUMBER, 0)
+        serialNumber = PcdmisTools.part.SerialNumber
 
         return serialNumber, dataList
     
