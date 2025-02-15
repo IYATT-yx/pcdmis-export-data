@@ -2,6 +2,8 @@
 
 PC-DMIS 数据导出工具  
 ![alt text](doc/img/image1.png)
+在每次 PC-DMIS 测量后，运行该工具将测量数据以 Excel 文件的形式导出  
+![alt text](doc/img/image2.png)
 
 ## 测试环境
 
