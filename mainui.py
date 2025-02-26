@@ -205,7 +205,7 @@ class MainUI(tk.Frame):
         """
         向 PC-DMIS 中添加外部命令
         """
-        PcdmisTools.connect()
+        PcdmisTools.connect(online=False)
         exePath = self.cmdText.get('1.0', 'end').strip()
         PcdmisTools.addExternalCommand(exePath)
 
