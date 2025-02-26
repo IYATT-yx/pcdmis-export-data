@@ -48,9 +48,12 @@ class PcdmisTools:
             PcdmisTools.getFcfFromCmd = PcdmisTools.getFcfFromCmd2019R2
 
     @staticmethod
-    def connect() -> tuple[str, str]:
+    def connect(online: bool = True) -> tuple[str, str]:
         """
         连接 PC-DMIS
+
+        Args:
+            online (bool): 是否连接联机程序，否则连接前台程序
 
         Returns:
             (PC-DMIS 版本, 当前程序名称)
@@ -75,31 +78,32 @@ class PcdmisTools:
         # 获取所有测量程序
         parts = PcdmisTools.app.PartPrograms
 
-        for part in parts:
-            programName = part.Name
-            machine = part.ActiveMachine
-            status = machine.ConnectionStatus
-            programString += f'({count}) 测量程序名：{programName}，设备：{machine}，连接状态：'
-            match status:
-                case pdconst.NotAvailable:
-                    programString += '不可用'
-                case pdconst.MachineNotConnected:
-                    programString += '未连接'
-                case pdconst.MachineHoming:
-                    programString += '正在回零'
-                case pdconst.MachineDisconnecting:
-                    programString += '正在断开连接'
-                case pdconst.MachineConnecting:
-                    programString += '正在连接'
-                case pdconst.MachineConnected:
-                    PcdmisTools.part = part
-                    programString += '已连接'
-            programString += '；'
-            count += 1
-        Dialog.log(f'已打开程序数：{parts.Count}，程序状态：{programString}')
+        if online:
+            for part in parts:
+                programName = part.Name
+                machine = part.ActiveMachine
+                status = machine.ConnectionStatus
+                programString += f'({count}) 测量程序名：{programName}，设备：{machine}，连接状态：'
+                match status:
+                    case pdconst.NotAvailable:
+                        programString += '不可用'
+                    case pdconst.MachineNotConnected:
+                        programString += '未连接'
+                    case pdconst.MachineHoming:
+                        programString += '正在回零'
+                    case pdconst.MachineDisconnecting:
+                        programString += '正在断开连接'
+                    case pdconst.MachineConnecting:
+                        programString += '正在连接'
+                    case pdconst.MachineConnected:
+                        PcdmisTools.part = part
+                        programString += '已连接'
+                programString += '；'
+                count += 1
+            Dialog.log(f'已打开程序数：{parts.Count}，程序状态：{programString}')
 
         if PcdmisTools.part is None:
-            Dialog.log('没有正在测量的程序，尝试获取当前前台的程序')
+            Dialog.log('尝试获取当前前台的程序')
             PcdmisTools.part = PcdmisTools.app.ActivePartProgram
         
         if PcdmisTools.part is None:
