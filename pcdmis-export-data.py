@@ -15,6 +15,7 @@ import traceback
 from tkinter import filedialog
 import os
 import datetime
+import subprocess
 
 def argumentParser() -> argparse.Namespace:
     """
@@ -96,6 +97,17 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
 
     return os.path.normpath(exportFilePath).strip()
 
+def newConsolePrint(message: str, delay: int = 3):
+    """
+    打开新的控制台窗口并打印信息
+
+    Args:
+        message (str): 打印的信息
+        delay (int, optional): 控制台窗口的存活时间，单位为秒. 默认 3 秒.
+    """
+    command = f"echo {message} & timeout /t {delay}"
+    subprocess.Popen(f'start cmd /c "{command}"', shell=True)
+
 def cmdMode():
     """
     命令模式
@@ -110,7 +122,9 @@ def cmdMode():
     ExcelTools.write(serialNumber, dataList)
 
     executionTime = datetime.datetime.now() - startTime
-    Dialog.log(f'导出文件到：{exportFilePath}，耗时：{executionTime}')
+    msg = f'导出文件到：{exportFilePath}，耗时：{executionTime}'
+    Dialog.log(msg)
+    newConsolePrint(msg)
 
 def uiMode():
     """
@@ -148,11 +162,8 @@ def main():
     Dialog()
     if len(sys.argv) > 1:
         runWithCatchException(cmdMode)
-        Dialog.log('命令模式结束', Dialog.DEBUG)
     else:
         runWithCatchException(uiMode)
-        Dialog.log('图形界面模式结束', Dialog.DEBUG)
-    
 
 if __name__ == '__main__':
     status, error =CommonTools.runAsAdmin()
