@@ -15,6 +15,7 @@ import win32com.client as wc
 import hashlib
 # import re
 # import importlib
+import os
 from types import MethodType
 from enum import Enum, auto
 import pywintypes
@@ -388,6 +389,29 @@ class PcdmisTools:
         cmd.PutText(exePath, pdconst.COMMAND_STRING, 0)
         cmd.PutText('不显示', pdconst.DISPLAY_TRACE, 0)
         cmd.PutText('等待', pdconst.TRACE_NAME, 0)
+
+    def getCurProgPath():
+        """
+        获取当前测量程序的绝对路径
+        """
+        return PcdmisTools.part.FullName
+
+    def saveProg():
+        """
+        保存测量程序
+
+        Returns:
+            保存成功返回 True，否则返回 False
+        """
+        if PcdmisTools.part is None:
+            raise CustomException('请先连接 PC-DMIS 程序后，再保存程序', CustomException.WARNING)
+
+        if PcdmisTools.part.Save:
+            Dialog.log(f'保存测量程序成功：{PcdmisTools.getCurProgPath()}')
+            return True
+        else:
+            Dialog.log(f'保存测量程序失败：{PcdmisTools.getCurProgPath()}')
+            return False
         
 def test1():
     """基本功能测试"""
