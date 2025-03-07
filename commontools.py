@@ -21,11 +21,12 @@ class CommonTools:
         return os.path.exists(filePath)
     
     @staticmethod
-    def getTimeStamp(mode: int = 0) -> str:
+    def getTimeStamp(timeTuple, mode: int = 0) -> str:
         """
         获取当前时间戳
 
         Params:
+            timeTuple: 时间元组 time.localtime()
             mode (int): 时间戳格式，0为完整时间戳，1为日期戳；2为日期戳，带分隔符号；3为时间戳，带分隔符
 
         Returns:
@@ -33,13 +34,15 @@ class CommonTools:
         """
         match mode:
             case 0:
-                return time.strftime("%Y%m%d_%H%M%S", time.localtime())
+                return time.strftime("%Y%m%d_%H%M%S", timeTuple)
             case 1:
-                return time.strftime("%Y%m%d", time.localtime())
+                return time.strftime("%Y%m%d", timeTuple)
             case 2:
-                return time.strftime("%Y-%m-%d", time.localtime())
+                return time.strftime("%Y-%m-%d", timeTuple)
             case 3:
-                return time.strftime("%H:%M:%S", time.localtime())
+                return time.strftime("%H:%M:%S", timeTuple)
+            case 4:
+                return time.strftime("%H%M%S", timeTuple)
 
     @staticmethod
     def removeFileExtension(path: str) -> str:
