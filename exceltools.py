@@ -98,7 +98,7 @@ class ExcelTools:
         ExcelTools.currentRow = endRow
 
     @staticmethod
-    def writeData(digest: str, serialNumber: str, dataList: list[dict]):
+    def writeData(digest: str, serialNumber: str, dataList: list[dict], timeTuple):
         """
         写数据
 
@@ -106,6 +106,7 @@ class ExcelTools:
             digest: 测量项目字符串摘要
             serialNumber: 测量报告序列号
             dataList: 测量数据列表
+            timeTuple: 时间元组 time.localtime()
         """
         endCol = len(dataList) + 5
         for col in range(1, endCol):
@@ -115,9 +116,9 @@ class ExcelTools:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, serialNumber)
                 ExcelTools.setCellWrap(ExcelTools.currentRow, col)
             elif col == 3:
-                ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(2))
+                ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(timeTuple, 2))
             elif col == 4:
-                ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(3))
+                ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(timeTuple, 3))
             else:
                 data = dataList[col - 5]
                 nominal = data['标称值']
@@ -167,13 +168,14 @@ class ExcelTools:
         ExcelTools.sheet.cell(row, col).fill = PatternFill(start_color=color.value, end_color=color.value, fill_type='solid')
 
     @staticmethod
-    def write(serialNumber: str, dataList: list[dict]):
+    def write(serialNumber: str, dataList: list[dict], timeTuple):
         """
         写数据到 Excel 文件
 
         Params:
             serialNumber: 测量报告序列号
             dataList: 测量数据列表
+            timeTuple: 时间元组 time.localtime()
         """
         if len(dataList) == 0:
             raise CustomException('测量数据为空', CustomException.ERROR)
@@ -185,7 +187,7 @@ class ExcelTools:
             ExcelTools.writeHeader(dataList)
             Dialog.log('写表头')
 
-        ExcelTools.writeData(digest, serialNumber, dataList)
+        ExcelTools.writeData(digest, serialNumber, dataList, timeTuple)
         Dialog.log('写数据')
 
         ExcelTools.workBook.save(ExcelTools.filePath)
