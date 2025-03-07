@@ -15,7 +15,9 @@ import traceback
 from tkinter import filedialog
 import os
 import datetime
+import time
 import subprocess
+import shutil
 
 def argumentParser() -> argparse.Namespace:
     """
@@ -33,7 +35,7 @@ def argumentParser() -> argparse.Namespace:
     fileGroup.add_argument('-n', '--nospecified', action='store_true', help='不指定导出文件或目录')
     return parser.parse_args()
 
-def generateExportFilePath(args: argparse.Namespace, version: str, name: str) -> str:
+def generateExportFilePath(args: argparse.Namespace, version: str, name: str, timeTuple) -> str:
     """
     根据使用的参数生成导出文件路径
 
@@ -41,12 +43,13 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str) ->
         args: 参数解析器
         version: PC-DMIS 版本
         name: PC-DMIS 程序名
+        timeTuple: 时间元组 time.localtime()
 
     Returns:
         str: 导出文件路径
     """
     pcdmisProgramName = CommonTools.removeFileExtension(name)
-    exportFileName = f'({pcdmisProgramName})({version})({CommonTools.getTimeStamp(1)}).xlsx'
+    exportFileName = f'{pcdmisProgramName}({version})({CommonTools.getTimeStamp(timeTuple, 1)}).xlsx'
     defaultDir = os.path.join(constants.Path.programFileDir, pcdmisProgramName)
     if CommonTools.checkFileExist(defaultDir) == False:
         os.makedirs(defaultDir)
@@ -115,11 +118,23 @@ def cmdMode():
     startTime = datetime.datetime.now()
     args = argumentParser()
     pcdmisVersion, programName = PcdmisTools.connect()
-    exportFilePath = generateExportFilePath(args, pcdmisVersion, programName)
+
+    timeTuple = time.localtime()
+
+    exportFilePath = generateExportFilePath(args, pcdmisVersion, programName, timeTuple)
     
     serialNumber, dataList = PcdmisTools.getData()
     ExcelTools.openExcel(exportFilePath)
-    ExcelTools.write(serialNumber, dataList)
+    ExcelTools.write(serialNumber, dataList, timeTuple)
+
+    # 保存程序文件路径
+    saveAsProgramPath = os.path.join(
+        os.path.dirname(exportFilePath),
+        CommonTools.removeFileExtension(exportFilePath) + f'({CommonTools.getTimeStamp(timeTuple, 4)})END.PRG'
+    )
+    if PcdmisTools.saveProg(): # 保存测量程序
+        shutil.copy2(PcdmisTools.getCurProgPath(), saveAsProgramPath) # 复制测量程序到指定目录
+        CommonTools.setFileReadOnly(saveAsProgramPath) # 设置测量程序只读
 
     executionTime = datetime.datetime.now() - startTime
     msg = f'导出文件到：{exportFilePath}，耗时：{executionTime}'
