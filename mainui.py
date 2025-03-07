@@ -6,7 +6,6 @@ from customexception import CustomException
 
 import tkinter as tk
 from tkinter import ttk
-import sys
 from tkinter import filedialog
 import os
 
@@ -76,14 +75,34 @@ class MainUI(tk.Frame):
         .grid(column=2, row=0, sticky=tk.NSEW)
         tk.Button(tabFrame, text='浏览文件', command=self.onBrowseFileButton) \
         .grid(column=2, row=2, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='复制命令', command=self.onCopyButton) \
+        tk.Button(tabFrame, text='复制命令到剪切板', command=self.onCopyButton) \
         .grid(column=0, row=5, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='添加命令', command=self.onAddCmd) \
+        tk.Button(tabFrame, text='删除程序中的命令', command=self.onDelCmd) \
         .grid(column=0, row=6, sticky=tk.NSEW)
+        tk.Button(tabFrame, text='添加命令到程序中', command=self.onAddCmd) \
+        .grid(column=0, row=7, sticky=tk.NSEW)
+        tk.Button(tabFrame, text='保存测量程序', command=self.onSaveProg) \
+        .grid(column=0, row=8, sticky=tk.NSEW)
 
         # 命令输出框
-        self.cmdText = tk.Text(tabFrame, height=5)
-        self.cmdText.grid(column=1, row=5, columnspan=2, rowspan=2, sticky=tk.NSEW)
+        self.cmdText = tk.Text(tabFrame, height=5, state='disabled')
+        self.cmdText.grid(column=1, row=5, columnspan=2, rowspan=4, sticky=tk.NSEW)
+    
+    def onSaveProg(self):
+        """
+        保存测量程序按钮事件回调
+        """
+        PcdmisTools.connect(False)
+        PcdmisTools.saveProg()
+
+    def onDelCmd(self):
+        """
+        删除命令按钮事件回调
+        """
+        PcdmisTools.connect(False)
+        PcdmisTools.removeExternalCommand()
+        Dialog.log('已删除所有调用本工具的外部命令，若未刷新，点击PC-DMIS编辑窗口即可刷新', Dialog.INFO)
+        
 
     def afterCreateUserInterface(self):
         """
@@ -178,10 +197,12 @@ class MainUI(tk.Frame):
             text: 要写入的文本
             addExePath: 是否添加可执行文件路径
         """
+        self.cmdText.config(state='normal')
         self.cmdText.delete('1.0', 'end')
         if addExePath:
             text = constants.Path.executableCommand + ' ' + text
         self.cmdText.insert('1.0', text)
+        self.cmdText.config(state='disabled')
 
     def onFileOptionRadiobutton(self):
         """
@@ -205,7 +226,7 @@ class MainUI(tk.Frame):
         """
         向 PC-DMIS 中添加外部命令
         """
-        PcdmisTools.connect(online=False)
+        PcdmisTools.connect(False)
         exePath = self.cmdText.get('1.0', 'end').strip()
         PcdmisTools.addExternalCommand(exePath)
 
