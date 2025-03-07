@@ -368,6 +368,24 @@ class PcdmisTools:
         return hashlib.sha256(sumaryString.encode('utf-8')).hexdigest()
     
     @staticmethod
+    def removeExternalCommand():
+        """
+        移除使用本工具的外部命令
+        """
+        if PcdmisTools.cmds is None:
+            Dialog.log('请先连接 PC-DMIS 程序后，再使用移除命令', Dialog.WARNING)
+            return
+        idx = PcdmisTools.cmds.Count - 1
+        while idx > 0 :
+            cmd = PcdmisTools.cmds[idx]
+            if cmd.IsExternalCommand:
+                extCmdStr = cmd.GetFieldValue(pdconst.COMMAND_STRING, 0)
+                if 'pcdmis-export-data' in extCmdStr:
+                    cmd.Remove()
+                    Dialog.log(f'删除外部命令：{extCmdStr}')
+            idx -= 1
+
+    @staticmethod
     def addExternalCommand(exePath: str):
         """
         添加外部命令
@@ -376,7 +394,8 @@ class PcdmisTools:
             exePath: 外部命令的路径
         """
         if PcdmisTools.cmds is None:
-            raise CustomException('请先连接 PC-DMIS 程序后，再添加命令', CustomException.WARNING)
+            Dialog.log('请先连接 PC-DMIS 程序后，再添加命令', Dialog.WARNING)
+            return
         
         # 获取最后一条命令
         cmdNumber = PcdmisTools.cmds.Count
@@ -389,6 +408,8 @@ class PcdmisTools:
         cmd.PutText(exePath, pdconst.COMMAND_STRING, 0)
         cmd.PutText('不显示', pdconst.DISPLAY_TRACE, 0)
         cmd.PutText('等待', pdconst.TRACE_NAME, 0)
+
+        Dialog.log(f'添加外部命令：{exePath}')
 
     def getCurProgPath():
         """
