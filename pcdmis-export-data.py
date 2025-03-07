@@ -151,7 +151,7 @@ def uiMode():
     master.title(constants.Basic.projectName)
 
     width = 756
-    height = 240
+    height = 290
     defaultX = int((master.winfo_screenwidth() - width) / 2)
     defaultY = int((master.winfo_screenheight() - height) / 2)
     master.geometry(f'{width}x{height}+{defaultX}+{defaultY}')
