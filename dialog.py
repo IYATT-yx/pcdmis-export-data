@@ -20,15 +20,19 @@ class Dialog:
         logger = logging.getLogger(loggerName)
         if logger.hasHandlers():
             return
+        
         # 文件输出日志
         fileHandler = logging.FileHandler(constants.Dialog.dialogPath, encoding=constants.Dialog.dialogEncoding)
-        # 控制台输出日志
-        streamHandler = logging.StreamHandler()
         formatter = logging.Formatter(constants.Dialog.dialogFormat, constants.Dialog.dateFormat)
         fileHandler.setFormatter(formatter)
-        streamHandler.setFormatter(formatter)
         logger.addHandler(fileHandler)
-        logger.addHandler(streamHandler)
+
+        # 控制台输出日志（没有打包才在控制台输出日志）
+        if not constants.Status.packaged:
+            streamHandler = logging.StreamHandler()
+            streamHandler.setFormatter(formatter)
+            logger.addHandler(streamHandler)
+
         logger.setLevel(constants.Dialog.dialogLevel)
 
     @staticmethod
