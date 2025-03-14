@@ -61,6 +61,7 @@ class Basic:
 class Dialog:
     dialogPath = os.path.join(
         Path.programFileDir,
+        'log',
         f'PC-DMIS-export-data_{datetime.datetime.now().strftime('%Y%m%d')}.log'
     )
     dialogFormat = '[ %(asctime)s %(levelname)-8s 模块：%(name)-16s ] %(message)s'

@@ -1,6 +1,7 @@
 import constants
 from topmessagebox import TopMessagebox
 
+import os
 import logging
 import inspect
 
@@ -22,6 +23,8 @@ class Dialog:
             return
         
         # 文件输出日志
+        if not os.path.exists(os.path.dirname(constants.Dialog.dialogPath)):
+            os.makedirs(os.path.dirname(constants.Dialog.dialogPath), exist_ok=True)
         fileHandler = logging.FileHandler(constants.Dialog.dialogPath, encoding=constants.Dialog.dialogEncoding)
         formatter = logging.Formatter(constants.Dialog.dialogFormat, constants.Dialog.dateFormat)
         fileHandler.setFormatter(formatter)
