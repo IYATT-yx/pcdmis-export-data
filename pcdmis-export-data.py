@@ -139,7 +139,7 @@ def cmdMode():
     executionTime = datetime.datetime.now() - startTime
     msg = f'导出文件到：{exportFilePath}，耗时：{executionTime}'
     Dialog.log(msg)
-    newConsolePrint(msg)
+    # newConsolePrint(msg)
 
 def uiMode():
     """
