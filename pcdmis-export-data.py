@@ -130,7 +130,7 @@ def cmdMode():
     # 保存程序文件路径
     saveAsProgramPath = os.path.join(
         os.path.dirname(exportFilePath),
-        CommonTools.removeFileExtension(exportFilePath) + f'({CommonTools.getTimeStamp(timeTuple, 4)})END.PRG'
+        CommonTools.removeFileExtension(exportFilePath) + f'({CommonTools.getTimeStamp(timeTuple, 0)})END.PRG'
     )
     if PcdmisTools.saveProg(): # 保存测量程序
         shutil.copy2(PcdmisTools.getCurProgPath(), saveAsProgramPath) # 复制测量程序到指定目录
