@@ -14,28 +14,16 @@ class Status:
      """软件是否处于打包状态"""
 
 class Path:
-    executableCommand = os.path.abspath(sys.argv[0]) if Status.packaged else sys.executable + ' ' + os.path.abspath(sys.argv[0])
-    """软件的执行命令"""
-
-    rootDir = os.path.dirname(
-          sys.executable if Status.packaged else os.path.abspath(sys.argv[0])
-    )
-    """根目录"""
-
+    runtimeDir = os.path.dirname(__file__)
+    """运行时目录"""
     programFileDir = os.path.dirname(os.path.abspath(sys.argv[0]))
     """程序文件所在目录"""
-
+    executableCommand = os.path.abspath(sys.argv[0]) if Status.packaged else sys.executable + ' ' + os.path.abspath(sys.argv[0])
+    """软件自身的执行命令"""
     executableFilePath = os.path.abspath(sys.argv[0]) if Status.packaged else sys.executable
     """可执行文件路径"""
-
-    # executableFilePath = os.path.abspath(sys.argv[0])
-    # """nuitka 打包后为可执行文件路径；未打包为脚本入口文件路径"""
-    # rootPath = os.path.dirname(
-    #     sys.executable if CommonTools.getPackagedStatus() else os.path.abspath(sys.argv[0])
-    # )
-    # """nuitka 打包后为可执行文件释放的临时目录；未打包为脚本入口文件所在目录"""
-    # executableFileDir = os.path.dirname(executableFilePath)
-    # """nuitka 打包后为可执行文件所在目录，未打包为脚本入口文件所在目录"""
+    defaultDataPath = os.path.join(programFileDir, 'data')
+    """默认数据文件路径"""
 
 description = """
 1 适用：
@@ -56,7 +44,7 @@ class Basic:
         author = 'IYATT-yx iyatt@iyatt.com'
         description = f'{projectName}\n版本：{version}\n作者：{author}\n\n{description}'
         logoName = 'icon.ico'
-        logoPath = os.path.join(Path.rootDir, logoName)
+        logoPath = os.path.join(Path.runtimeDir, logoName)
 
 class Dialog:
     dialogPath = os.path.join(
