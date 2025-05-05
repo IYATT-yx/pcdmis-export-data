@@ -10,6 +10,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Alignment
 from pcdmistools import PcdmisTools
 import tkinter as tk
+import os
 
 Dialog()
 
@@ -34,6 +35,7 @@ class ExcelTools:
             ExcelTools.workBook = openpyxl.load_workbook(filePath)
         else:
             Dialog.log(f'{filePath} 不存在，创建新文件')
+            os.makedirs(os.path.dirname(filePath), exist_ok=True) # 文件夹不存在就创建
             ExcelTools.workBook = openpyxl.Workbook()
         ExcelTools.sheet = ExcelTools.workBook.active
         ExcelTools.filePath = filePath
