@@ -4,11 +4,11 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 python.exe -m pip install --upgrade pip
 pip install -r requirements.txt
-pip install nuitka==2.6.4
+pip install nuitka==2.7.0
 
 python .\savebuildtime.py
 
-nuitka --standalone --onefile --remove-output --windows-console-mode=disable `
+nuitka --standalone --remove-output --windows-console-mode=disable `
 --include-module=pcdlrnconst.pcdlrnconst20232 --include-module=pcdlrnconst.pcdlrnconst2019R2 `
 --enable-plugin=tk-inter `
 --windows-icon-from-ico=.\icon.ico --include-data-file=.\icon.ico=.\ `
