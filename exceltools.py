@@ -29,13 +29,12 @@ class ExcelTools:
         Params:
             filePath: Excel 文件路径
         """
-        if CommonTools.checkFileExist(filePath):
+        if os.path.exists(filePath):
             Dialog.log(f'{filePath} 已存在，加载文件')
             CommonTools.setFileReadOnly(filePath, False) # 打开文件前先解除只读
             ExcelTools.workBook = openpyxl.load_workbook(filePath)
         else:
             Dialog.log(f'{filePath} 不存在，创建新文件')
-            os.makedirs(os.path.dirname(filePath), exist_ok=True) # 文件夹不存在就创建
             ExcelTools.workBook = openpyxl.Workbook()
         ExcelTools.sheet = ExcelTools.workBook.active
         ExcelTools.filePath = filePath
