@@ -35,9 +35,9 @@ def argumentParser() -> argparse.Namespace:
     fileGroup.add_argument('-n', '--nospecified', action='store_true', help='不指定导出文件或目录')
     return parser.parse_args()
 
-def generateExportFilePath(args: argparse.Namespace, version: str, name: str, timeTuple) -> str:
+def generateExportFilePath(args: argparse.Namespace, version: str, name: str, serialNumber: str, timeTuple) -> tuple[str, str]:
     """
-    根据使用的参数生成导出文件路径
+    根据使用的参数生成导出Excel路径和程序副本路径
 
     Args:
         args: 参数解析器
@@ -46,23 +46,36 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str, ti
         timeTuple: 时间元组 time.localtime()
 
     Returns:
-        str: 导出文件路径
+        (str, str): (导出Excel路径, 程序副本路径)
     """
-    pcdmisProgramName = CommonTools.removeFileExtension(name)
-    exportFileName = f'{pcdmisProgramName}({version})({CommonTools.getTimeStamp(timeTuple, 1)}).xlsx'
-    defaultDir = os.path.join(constants.Path.defaultDataPath, pcdmisProgramName)
-    if CommonTools.checkFileExist(defaultDir) == False:
-        os.makedirs(defaultDir)
-        Dialog.log(f'创建文件夹：{defaultDir}')
+    name = CommonTools.removeFileExtension(name)
+
+    exportProgramFileName = (
+        f'{name}'
+        f'({version})'
+        f'({CommonTools.getTimeStamp(timeTuple, 1)})'
+        f'({CommonTools.getTimeStamp(timeTuple, 4)})'
+        f'({serialNumber})'
+        '.PRG'
+    )
+    """程序副本文件名"""
+
+    exportExcelFileName = (
+        f'{name}'
+        f'({version})'
+        '.xlsx'
+    )
+    """默认Excel文件名"""
+
+    defaultExcelFileDir = os.path.join(constants.Path.defaultDataPath, name)
+    """默认Excel保存目录"""
 
     # 指定目录
     if args.directory is not None:
         directory: str = args.directory.strip()
         if directory == '':
             raise CustomException('导出目录为空', CustomException.WARNING)
-        if CommonTools.checkFileExist(directory) == False:
-            raise CustomException('指定的目录不存在', CustomException.WARNING)
-        exportFilePath = os.path.join(directory, exportFileName)
+        exportExcelFilePath = os.path.join(directory, exportExcelFileName)
     # 运行时指定目录
     elif args.specifydirectoryatruntime:
         directory = filedialog.askdirectory(
@@ -72,14 +85,15 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str, ti
         )
         if directory == '':
             Dialog.log('取消选择文件夹', Dialog.INFO)
-            return
-        exportFilePath = os.path.join(directory, exportFileName)
+            return None, None
+        exportExcelFilePath = os.path.join(directory, exportExcelFileName)
     # 参数传入文件
     elif args.file is not None:
         file: str = args.file.strip()
         if file == '':
-            raise CustomException('导出文件路径为空', CustomException.WARNING)            
-        exportFilePath = os.path.abspath(file)
+            raise CustomException('导出文件路径为空', CustomException.WARNING)
+        dir = os.path.dirname(file)
+        exportExcelFilePath = os.path.abspath(file)
     # 运行时选择文件
     elif args.specifyfileatruntime:
         file = filedialog.asksaveasfilename(
@@ -90,15 +104,24 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str, ti
         )
         if file == '':
             Dialog.log('取消选择文件', Dialog.INFO)
-            return
-        exportFilePath = os.path.abspath(file)
+            return None, None
+        exportExcelFilePath = os.path.abspath(file)
     # 不指定文件或文件夹
     elif args.nospecified:
-        exportFilePath = os.path.join(defaultDir, exportFileName)
+        exportExcelFilePath = os.path.join(defaultExcelFileDir, exportExcelFileName)
     else:
         raise CustomException('命令行参数错误', CustomException.ERROR)
 
-    return os.path.normpath(exportFilePath).strip()
+    # 导出 Excel 的文件夹不存在就自动创建
+    dir = os.path.dirname(exportExcelFilePath)
+    os.makedirs(dir, exist_ok=True)
+
+    # 整理 Excel 导出路径
+    exportExcelFilePath = os.path.normpath(exportExcelFilePath).strip()
+    # 程序副本路径
+    exportProgramFilePath = os.path.join(dir, exportProgramFileName)
+
+    return exportExcelFilePath, exportProgramFilePath
 
 def newConsolePrint(message: str, delay: int = 3):
     """
@@ -120,24 +143,24 @@ def cmdMode():
     pcdmisVersion, programName = PcdmisTools.connect()
 
     timeTuple = time.localtime()
-
-    exportFilePath = generateExportFilePath(args, pcdmisVersion, programName, timeTuple)
-    
     serialNumber, dataList = PcdmisTools.getData()
-    ExcelTools.openExcel(exportFilePath)
+
+    exportExcelFilePath, exportProgramFilePath = generateExportFilePath(args, pcdmisVersion, programName, serialNumber, timeTuple)
+
+    if exportExcelFilePath is None:
+        Dialog.log('取消选择文件夹或文件')
+        return
+    
+    ExcelTools.openExcel(exportExcelFilePath)
     ExcelTools.write(serialNumber, dataList, timeTuple)
 
-    # 保存程序文件路径
-    saveAsProgramPath = os.path.join(
-        os.path.dirname(exportFilePath),
-        CommonTools.removeFileExtension(exportFilePath) + f'({CommonTools.getTimeStamp(timeTuple, 0)})END.PRG'
-    )
+    print(f'exportProgramFilePath={exportProgramFilePath}')
     if PcdmisTools.saveProg(): # 保存测量程序
-        shutil.copy2(PcdmisTools.getCurProgPath(), saveAsProgramPath) # 复制测量程序到指定目录
-        CommonTools.setFileReadOnly(saveAsProgramPath) # 设置测量程序只读
+        shutil.copy2(PcdmisTools.getCurProgPath(), exportProgramFilePath) # 复制测量程序到指定目录
+        CommonTools.setFileReadOnly(exportProgramFilePath) # 设置测量程序只读
 
     executionTime = datetime.datetime.now() - startTime
-    msg = f'导出文件到：{exportFilePath}，耗时：{executionTime}'
+    msg = f'程序文件副本：{exportProgramFilePath}，导出 Excel 文件到：{exportProgramFilePath}，耗时：{executionTime}'
     Dialog.log(msg)
     # newConsolePrint(msg)
 
