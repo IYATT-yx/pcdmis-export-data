@@ -8,19 +8,6 @@ import ctypes
 
 class CommonTools:
     @staticmethod
-    def checkFileExist(filePath: str) -> bool:
-        """
-        检查文件或文件夹是否已经存在
-
-        Params:
-            filePath (str): 文件路径
-
-        Returns:
-            bool: 是否存在
-        """
-        return os.path.exists(filePath)
-    
-    @staticmethod
     def getTimeStamp(timeTuple, mode: int = 0) -> str:
         """
         获取当前时间戳
