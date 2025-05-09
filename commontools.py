@@ -39,6 +39,47 @@ class CommonTools:
         return pathlib.Path(path).stem
     
     @staticmethod
+    def getInitFolder() -> str:
+        """获取初始文件夹路径
+        """
+        try:
+            with open(constants.Path.initFolderPath, 'r') as f:
+                initFolder = f.read()
+        except FileNotFoundError:
+            initFolder = constants.Path.programFileDir
+        return initFolder
+    
+    @staticmethod
+    def setInitFolder(folderPath: str):
+        """设置初始文件夹路径
+        """
+        os.makedirs(constants.Path.myDataPath, exist_ok=True)
+        with open(constants.Path.initFolderPath, 'w') as f:
+            f.write(folderPath)
+
+    @staticmethod
+    def getInitFileDir() -> str:
+        """获取初始文件目录
+        """
+        try:
+            with open(constants.Path.initFileDir, 'r') as f:
+                initFileDir = f.read()
+        except FileNotFoundError:
+            initFileDir = constants.Path.programFileDir
+        return initFileDir
+    
+    @staticmethod
+    def setInitFileDir(filePath: str):
+        """取输入文件路径的目录设置初始文件目录
+
+        Args:
+            filePath (str): 文件路径
+        """
+        os.makedirs(constants.Path.myDataPath, exist_ok=True)
+        with open(constants.Path.initFileDir, 'w') as f:
+            f.write(os.path.dirname(filePath))
+    
+    @staticmethod
     def quotingArgs(args: list[str]) -> str:
         """
         为参数添加双引号并拼接为一个字符串，保证参数可以正确处理

@@ -25,6 +25,13 @@ class Path:
     defaultDataPath = os.path.join(programFileDir, 'data')
     """默认数据文件路径"""
 
+    myDataPath = os.path.join(os.getenv('APPDATA'), 'pcdmis-export-data')
+    """用户数据路径"""
+    initFolderPath = os.path.join(myDataPath, 'initFolder.txt')
+    """初始文件夹路径"""
+    initFileDir = os.path.join(myDataPath, 'initFileDir.txt')
+    """初始文件目录"""
+    
 description = """
 1 适用：
     1.1 PC-DMIS 版本：2018 R1、2019 R2、2023.1、2023.2

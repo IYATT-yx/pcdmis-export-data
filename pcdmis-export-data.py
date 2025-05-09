@@ -79,13 +79,14 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str, se
     # 运行时指定目录
     elif args.specifydirectoryatruntime:
         directory = filedialog.askdirectory(
-            initialdir=constants.Path.programFileDir,
+            initialdir=CommonTools.getInitFolder(),
             title='选择导出目录',
             mustexist=True
         )
         if directory == '':
             Dialog.log('取消选择文件夹', Dialog.INFO)
             return None, None
+        CommonTools.setInitFolder(directory)
         exportExcelFilePath = os.path.join(directory, exportExcelFileName)
     # 参数传入文件
     elif args.file is not None:
@@ -96,15 +97,15 @@ def generateExportFilePath(args: argparse.Namespace, version: str, name: str, se
         exportExcelFilePath = os.path.abspath(file)
     # 运行时选择文件
     elif args.specifyfileatruntime:
-        file = filedialog.asksaveasfilename(
-            initialdir=constants.Path.programFileDir,
+        file = filedialog.askopenfilename(
+            initialdir=CommonTools.getInitFileDir(),
             title='选择导出文件',
-            filetypes=[('Excel 工作簿', '*.xlsx')],
-            confirmoverwrite=False,
+            filetypes=[('Excel 工作簿', '*.xlsx')]
         )
         if file == '':
             Dialog.log('取消选择文件', Dialog.INFO)
             return None, None
+        CommonTools.setInitFileDir(file)
         exportExcelFilePath = os.path.abspath(file)
     # 不指定文件或文件夹
     elif args.nospecified:

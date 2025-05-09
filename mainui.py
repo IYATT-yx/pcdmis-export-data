@@ -121,33 +121,32 @@ class MainUI(tk.Frame):
         浏览文件夹按钮事件回调
         """
         directory = filedialog.askdirectory(
-            initialdir=constants.Path.programFileDir,
+            initialdir=CommonTools.getInitFolder(),
             title='选择导出目录',
             mustexist=True
         )
         if directory == '':
             Dialog.log('取消选择文件夹', Dialog.INFO)
             return
-        self.directoryEntryValue.set(
-            os.path.normpath(directory)
-        )
+        directory = os.path.normpath(directory)
+        CommonTools.setInitFolder(directory)
+        self.directoryEntryValue.set(directory)
 
     def onBrowseFileButton(self):
         """
         浏览文件按钮事件回调
         """
-        file = filedialog.asksaveasfilename(
-            initialdir=constants.Path.programFileDir,
+        file = filedialog.askopenfilename(
+            initialdir=CommonTools.getInitFileDir(),
             title='选择导出文件',
-            filetypes=[('Excel 工作簿', '*.xlsx')],
-            confirmoverwrite=False
+            filetypes=[('Excel 工作簿', '*.xlsx')]
         )
         if file == '':
             Dialog.log('取消选择文件', Dialog.INFO)
             return
-        self.fileEntryValue.set(
-            os.path.normpath(file)
-        )
+        file = os.path.normpath(file)
+        CommonTools.setInitFileDir(file)
+        self.fileEntryValue.set(file)
 
     def onFolderEntryChange(self, *args):
         """
