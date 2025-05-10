@@ -26,6 +26,7 @@ class PcdmisTools:
     app = None
     part = None
     cmds = None
+    showNegative: bool = None
     # pdconst = None
     pivotVersion = '2022'
     getFcfFromCmd: MethodType = None
@@ -112,6 +113,7 @@ class PcdmisTools:
         else:
             Dialog.log(f'连接 PC-DMIS 程序成功，程序名：{PcdmisTools.part.Name}')
             PcdmisTools.initPcdlrnTools(PcdmisTools.app.VersionString)
+            PcdmisTools.showNegative = PcdmisTools.part.PartProgramSettings.MinusTolerancesShowNegative
         PcdmisTools.cmds = PcdmisTools.part.Commands
 
         return PcdmisTools.app.VersionString, PcdmisTools.part.Name
@@ -218,6 +220,8 @@ class PcdmisTools:
             plus = cmd.GetFieldValue(pdconst.LINE1_PLUSTOL, i)
             PcdmisTools.data['上公差'] = round(plus, precision)
             minustol = cmd.GetFieldValue(pdconst.LINE1_MINUSTOL, i)
+            if not PcdmisTools.showNegative:
+                minustol = -minustol
             PcdmisTools.data['下公差'] = round(minustol, precision)
             PcdmisTools.data['上限值'] = round(nominal + plus, precision)
             PcdmisTools.data['下限值'] = round(nominal + minustol, precision)
@@ -289,9 +293,13 @@ class PcdmisTools:
             PcdmisTools.data['单位'] = tolCmd.ReportUnits
             PcdmisTools.data['标称值'] = round(tolCmd.sizeNominal(i), precision)
             PcdmisTools.data['上公差'] = round(tolCmd.sizePlusTol(i), precision)
-            PcdmisTools.data['下公差'] = round(tolCmd.sizeMinusTol(i), precision)
+            sizeNibusTol = tolCmd.sizeMinusTol(i)
+            if not PcdmisTools.showNegative:
+                sizeNibusTol = -sizeNibusTol
+            PcdmisTools.data['下公差'] = round(sizeNibusTol, precision)
             PcdmisTools.data['上限值'] = round(tolCmd.sizeNominal(i) + tolCmd.sizePlusTol(i), precision)
-            PcdmisTools.data['下限值'] = round(tolCmd.sizeNominal(i) + tolCmd.sizeMinusTol(i), precision)
+            PcdmisTools.data['下限值'] = round(tolCmd.sizeNominal(i) + sizeNibusTol, precision)
+
             PcdmisTools.data['实测值'] = round(tolCmd.sizeMeasured(i), precision)
             PcdmisTools.data['类型'] = PcdmisTools.dataType.FCFDIM
 
