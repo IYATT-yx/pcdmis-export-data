@@ -110,6 +110,7 @@ class ExcelTools:
             timeTuple: 时间元组 time.localtime()
         """
         endCol = len(dataList) + 5
+        status: bool = True # 标记测量数据合格与否
         for col in range(1, endCol):
             if col == 1:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, digest)
@@ -140,7 +141,6 @@ class ExcelTools:
 
                 ExcelTools.setCellPrecision(cell, constants.Data.precision)
 
-                status: bool = True
                 if dataType == PcdmisTools.dataType.FCF:
                     if measured > nominal + plus + bonus:
                         ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
@@ -160,10 +160,11 @@ class ExcelTools:
                             status = False
                             ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.underMinusColor)
 
-                    if status:
-                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ok)
-                    else:
-                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ng)
+        # 根据是否合格填充不同颜色
+        if status:
+            ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ok)
+        else:
+            ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ng)
 
         ExcelTools.currentRow += 1
 
