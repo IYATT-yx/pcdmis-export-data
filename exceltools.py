@@ -114,8 +114,11 @@ class ExcelTools:
             if col == 1:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, digest)
             elif col == 2:
-                ExcelTools.sheet.cell(ExcelTools.currentRow, col, serialNumber)
-                ExcelTools.setCellWrap(ExcelTools.currentRow, col)
+                if serialNumber == '':
+                    ExcelTools.sheet.cell(ExcelTools.currentRow, col, '（测量前未填序列号）')
+                else:
+                    ExcelTools.sheet.cell(ExcelTools.currentRow, col, serialNumber)
+                    ExcelTools.setCellWrap(ExcelTools.currentRow, col)
             elif col == 3:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(timeTuple, 2))
             elif col == 4:
@@ -137,6 +140,7 @@ class ExcelTools:
 
                 ExcelTools.setCellPrecision(cell, constants.Data.precision)
 
+                status: bool = True
                 if dataType == PcdmisTools.dataType.FCF:
                     if measured > nominal + plus + bonus:
                         ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
@@ -150,9 +154,16 @@ class ExcelTools:
 
                     if plus != minus:
                         if measured >= upper:
+                            status = False
                             ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
                         elif measured <= lower:
+                            status = False
                             ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.underMinusColor)
+
+                    if status:
+                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ok)
+                    else:
+                        ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ng)
 
         ExcelTools.currentRow += 1
 

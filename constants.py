@@ -65,6 +65,10 @@ class Data:
     overPlusColor = Colors.RED
     # 超下差颜色
     underMinusColor = Colors.MAGENTA
+    # 合格颜色
+    ok = Colors.GREEN
+    # 不合格颜色
+    ng = Colors.YELLOW
 
 
 
