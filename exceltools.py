@@ -143,6 +143,7 @@ class ExcelTools:
 
                 if dataType == PcdmisTools.dataType.FCF:
                     if measured > nominal + plus + bonus:
+                        status = False
                         ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
                 else:
                     if plus >= minus:
