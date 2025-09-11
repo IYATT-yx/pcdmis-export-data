@@ -99,7 +99,7 @@ class ExcelTools:
         ExcelTools.currentRow = endRow
 
     @staticmethod
-    def writeData(digest: str, serialNumber: str, dataList: list[dict], timeTuple):
+    def writeData(digest: str, serialNumber: str, dataList: list[dict], timeTuple) -> int:
         """
         写数据
 
@@ -108,9 +108,12 @@ class ExcelTools:
             serialNumber: 测量报告序列号
             dataList: 测量数据列表
             timeTuple: 时间元组 time.localtime()
+
+        Returns:
+            int: 不合格尺寸数
         """
         endCol = len(dataList) + 5
-        status: bool = True # 标记测量数据合格与否
+        nonconformingDimensions: int = 0 # 不合格测量项目数量
         for col in range(1, endCol):
             if col == 1:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, digest)
@@ -155,19 +158,20 @@ class ExcelTools:
 
                     if plus != minus:
                         if measured >= upper:
-                            status = False
+                            nonconformingDimensions += 1
                             ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
                         elif measured <= lower:
-                            status = False
+                            nonconformingDimensions += 1
                             ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.underMinusColor)
 
         # 根据是否合格填充不同颜色
-        if status:
+        if nonconformingDimensions != 0:
             ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ok)
         else:
             ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ng)
 
         ExcelTools.currentRow += 1
+        return nonconformingDimensions
 
     @staticmethod
     def fillCellWithColor(row: int, col: int, color: Colors):
@@ -182,7 +186,7 @@ class ExcelTools:
         ExcelTools.sheet.cell(row, col).fill = PatternFill(start_color=color.value, end_color=color.value, fill_type='solid')
 
     @staticmethod
-    def write(serialNumber: str, dataList: list[dict], timeTuple):
+    def write(serialNumber: str, dataList: list[dict], timeTuple) -> int:
         """
         写数据到 Excel 文件
 
@@ -190,6 +194,9 @@ class ExcelTools:
             serialNumber: 测量报告序列号
             dataList: 测量数据列表
             timeTuple: 时间元组 time.localtime()
+
+        Returns:
+            int: 不合格尺寸数
         """
         if len(dataList) == 0:
             raise CustomException('测量数据为空', CustomException.ERROR)
@@ -201,8 +208,9 @@ class ExcelTools:
             ExcelTools.writeHeader(dataList)
             Dialog.log('写表头')
 
-        ExcelTools.writeData(digest, serialNumber, dataList, timeTuple)
-        Dialog.log('写数据')
+        nonconformingDimensions = ExcelTools.writeData(digest, serialNumber, dataList, timeTuple)
+        Dialog.log(f'写数据, 不合格尺寸数：{nonconformingDimensions}')
 
         ExcelTools.workBook.save(ExcelTools.filePath)
         CommonTools.setFileReadOnly(ExcelTools.filePath) # 设置文件只读
+        return nonconformingDimensions

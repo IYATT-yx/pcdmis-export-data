@@ -27,10 +27,12 @@ class Path:
 
     myDataPath = os.path.join(os.getenv('APPDATA'), 'pcdmis-export-data')
     """用户数据路径"""
-    initFolderPath = os.path.join(myDataPath, 'initFolder.txt')
-    """初始文件夹路径"""
-    initFileDir = os.path.join(myDataPath, 'initFileDir.txt')
-    """初始文件目录"""
+    initFolderPath = os.path.join(myDataPath, 'initFolder.txt') # ？？？？
+    """用于存储初始文件夹路径的文件路径"""
+    initFileDir = os.path.join(myDataPath, 'initFileDir.txt') # ？？？？
+    """用于存储初始文件路径的文件路径"""
+    nonconformingDimensionsFile = os.path.join(defaultDataPath, '不合格尺寸汇总', '不合格尺寸汇总表')
+    """不合格计数文件路径"""
     
 description = """
 适用：

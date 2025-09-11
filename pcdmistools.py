@@ -58,7 +58,7 @@ class PcdmisTools:
             online (bool): 是否连接联机程序，否则连接前台程序
 
         Returns:
-            (PC-DMIS 版本, 当前程序名称)
+            (PC-DMIS 版本, 当前程序名称, 程序完整路径)
         """
         if PcdmisTools.app is not None:
             Dialog.log('PC-DMIS 已经连接')
@@ -116,7 +116,7 @@ class PcdmisTools:
             PcdmisTools.showNegative = PcdmisTools.part.PartProgramSettings.MinusTolerancesShowNegative
         PcdmisTools.cmds = PcdmisTools.part.Commands
 
-        return PcdmisTools.app.VersionString, PcdmisTools.part.Name
+        return PcdmisTools.app.VersionString, PcdmisTools.part.Name, PcdmisTools.part.FullName
     
     data = {
         '命令名': None,
