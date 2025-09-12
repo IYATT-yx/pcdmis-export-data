@@ -164,20 +164,19 @@ def cmdMode():
     msg = f'程序文件副本：{exportProgramFilePath}，导出 Excel 文件到：{exportProgramFilePath}，耗时：{executionTime}'
     Dialog.log(msg)
 
-    if nonconformingDimensions > 0:
-        row = f'{CommonTools.getTimeStamp(timeTuple, 0)},{fullProgramName},{nonconformingDimensions}\n'
-        nonconformingDimensionsFile = constants.Path.nonconformingDimensionsFile + CommonTools.getTimeStamp(timeTuple, 1) + '.csv'
-        nonconformingDimensionsFolder = os.path.dirname(nonconformingDimensionsFile)
-        os.makedirs(nonconformingDimensionsFolder, exist_ok=True)
-        if not os.path.exists(nonconformingDimensionsFile):
-            with open(nonconformingDimensionsFile, 'w') as f:
-                f.write('日期_时间,检测程序路径,不合格尺寸数量\n')
-                f.write(row)
-        else:
-            CommonTools.setFileReadOnly(nonconformingDimensionsFile, False)
-            with open(nonconformingDimensionsFile, 'a') as f:
-                f.write(row)
-        CommonTools.setFileReadOnly(nonconformingDimensionsFile, True)
+    row = f'{CommonTools.getTimeStamp(timeTuple, 0)},{fullProgramName},{nonconformingDimensions}\n'
+    nonconformingDimensionsFile = constants.Path.nonconformingDimensionsFile + CommonTools.getTimeStamp(timeTuple, 1) + '.csv'
+    nonconformingDimensionsFolder = os.path.dirname(nonconformingDimensionsFile)
+    os.makedirs(nonconformingDimensionsFolder, exist_ok=True)
+    if not os.path.exists(nonconformingDimensionsFile):
+        with open(nonconformingDimensionsFile, 'w') as f:
+            f.write('日期_时间,检测程序路径,不合格尺寸数量\n')
+            f.write(row)
+    else:
+        CommonTools.setFileReadOnly(nonconformingDimensionsFile, False)
+        with open(nonconformingDimensionsFile, 'a') as f:
+            f.write(row)
+    CommonTools.setFileReadOnly(nonconformingDimensionsFile, True)
 
     # newConsolePrint(msg)
 
