@@ -146,7 +146,7 @@ class ExcelTools:
 
                 if dataType == PcdmisTools.dataType.FCF:
                     if measured > nominal + plus + bonus:
-                        status = False
+                        nonconformingDimensions += 1
                         ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.overPlusColor)
                 else:
                     if plus >= minus:
@@ -165,7 +165,7 @@ class ExcelTools:
                             ExcelTools.fillCellWithColor(ExcelTools.currentRow, col, constants.Data.underMinusColor)
 
         # 根据是否合格填充不同颜色
-        if nonconformingDimensions != 0:
+        if nonconformingDimensions == 0:
             ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ok)
         else:
             ExcelTools.fillCellWithColor(ExcelTools.currentRow, 2, constants.Data.ng)
