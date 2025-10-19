@@ -349,7 +349,12 @@ class PcdmisTools:
                 dataList += fcfDatas
             idx += 1
 
-        serialNumber = PcdmisTools.part.SerialNumber
+        # 如果测量程序中赋值了 SN 变量，则优先将这个变量的值作为序列号
+        SERIALNUMBER_var = PcdmisTools.part.GetVariableValue('SN').StringValue
+        if SERIALNUMBER_var:
+            serialNumber = SERIALNUMBER_var
+        else:
+            serialNumber = PcdmisTools.part.SerialNumber
 
         return serialNumber, dataList
     
