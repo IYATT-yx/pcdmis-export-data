@@ -199,7 +199,8 @@ class ExcelTools:
             int: 不合格尺寸数
         """
         if len(dataList) == 0:
-            raise CustomException('测量数据为空', CustomException.ERROR)
+            Dialog.log('未读取到测量数据', Dialog.WARNING)
+            return 0
         
         # 实际记录的摘要为：测量项目字符串摘要 + 本工具版本号
         digest = PcdmisTools.calcDigest(dataList) + '_' + constants.Basic.version
