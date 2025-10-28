@@ -152,17 +152,25 @@ def cmdMode():
         Dialog.log('取消选择文件夹或文件')
         return
     
+    Dialog.log(f'准备导出 Excel 文件到：{exportExcelFilePath}, 路径长度：{len(exportExcelFilePath)}')
+    exportExcelFilePath = CommonTools.longPath(exportExcelFilePath)
     ExcelTools.openExcel(exportExcelFilePath)
     nonconformingDimensions = ExcelTools.write(serialNumber, dataList, timeTuple)
+    Dialog.log(f'导出 Excel 文件成功')
 
-    print(f'exportProgramFilePath={exportProgramFilePath}')
     if PcdmisTools.saveProg(): # 保存测量程序
-        shutil.copy2(PcdmisTools.getCurProgPath(), exportProgramFilePath) # 复制测量程序到指定目录
-        CommonTools.setFileReadOnly(exportProgramFilePath) # 设置测量程序只读
+        Dialog.log(f'测量程序路径长度：{len(PcdmisTools.getCurProgPath())}')
+        Dialog.log(f'准备复制测量程序到：{exportProgramFilePath}，路径长度：{len(exportProgramFilePath)}')
+        srcProgPath = CommonTools.longPath(PcdmisTools.getCurProgPath())
+        dstProgPath = CommonTools.longPath(exportProgramFilePath)
 
-    executionTime = datetime.datetime.now() - startTime
-    msg = f'程序文件副本：{exportProgramFilePath}，导出 Excel 文件到：{exportProgramFilePath}，耗时：{executionTime}'
-    Dialog.log(msg)
+        try:
+            shutil.copy2(srcProgPath, dstProgPath) # 复制测量程序到指定目录
+            CommonTools.setFileReadOnly(dstProgPath) # 设置测量程序只读
+        except Exception as e:
+            Dialog.log(f'复制测量程序失败：\n{traceback.format_exc()}')
+        else:
+            Dialog.log(f'复制测量程序成功')
 
     row = f'{CommonTools.getTimeStamp(timeTuple, 0)},{fullProgramName},{nonconformingDimensions}\n'
     nonconformingDimensionsFile = constants.Path.nonconformingDimensionsFile + CommonTools.getTimeStamp(timeTuple, 1) + '.csv'
@@ -177,6 +185,10 @@ def cmdMode():
         with open(nonconformingDimensionsFile, 'a') as f:
             f.write(row)
     CommonTools.setFileReadOnly(nonconformingDimensionsFile, True)
+
+    executionTime = datetime.datetime.now() - startTime
+    msg = f'耗时：{executionTime}'
+    Dialog.log(msg)
 
     # newConsolePrint(msg)
 
