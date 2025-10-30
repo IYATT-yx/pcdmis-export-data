@@ -62,6 +62,11 @@ class MainUI(tk.Frame):
         tk.Radiobutton(tabFrame, text='不指定', variable=self.fileOption, value=MainUI.FileOptions.NOSPECIFIED, command=self.onFileOptionRadiobutton) \
         .grid(column=0, row=4, sticky=tk.W)
 
+        # 是否保存程序文件选项
+        self.isSaveProg = tk.BooleanVar(self, value=True)
+        tk.Checkbutton(tabFrame, text='保存测量程序文件', variable=self.isSaveProg, command=self.onFileOptionRadiobutton) \
+        .grid(column=0, row=6, sticky=tk.W)
+
         # 目录和文件输入框
         self.directoryEntryValue = tk.StringVar()
         self.fileEntryValue = tk.StringVar()
@@ -76,17 +81,21 @@ class MainUI(tk.Frame):
         tk.Button(tabFrame, text='浏览文件', command=self.onBrowseFileButton) \
         .grid(column=2, row=2, sticky=tk.NSEW)
         tk.Button(tabFrame, text='复制命令到剪切板', command=self.onCopyButton) \
-        .grid(column=0, row=5, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='删除程序中的命令', command=self.onDelCmd) \
-        .grid(column=0, row=6, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='添加命令到程序中', command=self.onAddCmd) \
-        .grid(column=0, row=7, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='保存测量程序', command=self.onSaveProg) \
         .grid(column=0, row=8, sticky=tk.NSEW)
+        tk.Button(tabFrame, text='删除程序中的命令', command=self.onDelCmd) \
+        .grid(column=0, row=9, sticky=tk.NSEW)
+        tk.Button(tabFrame, text='添加命令到程序中', command=self.onAddCmd) \
+        .grid(column=0, row=10, sticky=tk.NSEW)
+        tk.Button(tabFrame, text='保存测量程序', command=self.onSaveProg) \
+        .grid(column=0, row=11, sticky=tk.NSEW)
+
+        # 分隔线
+        ttk.Separator(tabFrame, orient='horizontal').grid(column=0, row=5, columnspan=3, sticky=tk.EW, padx=10, pady=10)
+        ttk.Separator(tabFrame, orient='horizontal').grid(column=0, row=7, columnspan=3, sticky=tk.EW, padx=10, pady=10)
 
         # 命令输出框
         self.cmdText = tk.Text(tabFrame, height=5, state='disabled')
-        self.cmdText.grid(column=1, row=5, columnspan=2, rowspan=4, sticky=tk.NSEW)
+        self.cmdText.grid(column=1, row=8, columnspan=2, rowspan=4, sticky=tk.NSEW)
     
     def onSaveProg(self):
         """
@@ -198,6 +207,8 @@ class MainUI(tk.Frame):
         """
         self.cmdText.config(state='normal')
         self.cmdText.delete('1.0', 'end')
+        if not self.isSaveProg.get():
+            text += ' --no-prog'
         if addExePath:
             text = constants.Path.executableCommand + ' ' + text
         self.cmdText.insert('1.0', text)
