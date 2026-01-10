@@ -4,7 +4,7 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 python.exe -m pip install --upgrade pip
 pip install -r requirements.txt
-pip install nuitka==2.7.0
+pip install nuitka==2.8.9
 
 python .\savebuildtime.py
 
