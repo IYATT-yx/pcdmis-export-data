@@ -358,6 +358,16 @@ class PcdmisTools:
 
         return serialNumber, dataList
     
+    def modifySerialNumber(sn: str):
+        """
+        修改序列号
+
+        Args:
+            sn(str): 序列号
+        """
+        PcdmisTools.part.SerialNumber = sn
+        PcdmisTools.part.ReportWindow.RefreshReport
+    
     @staticmethod
     def calcDigest(dataList: list[dict]) -> str:
         """

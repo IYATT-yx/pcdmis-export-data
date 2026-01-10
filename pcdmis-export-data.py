@@ -147,6 +147,7 @@ def cmdMode():
 
     timeTuple = time.localtime()
     serialNumber, dataList = PcdmisTools.getData()
+    PcdmisTools.modifySerialNumber(serialNumber) # 如果使用的 SN 变量序列号，则可以设置给报告序列号
 
     exportExcelFilePath, exportProgramFilePath = generateExportFilePath(args, pcdmisVersion, programName, serialNumber, timeTuple)
 
