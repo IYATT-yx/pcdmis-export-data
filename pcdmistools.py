@@ -39,6 +39,42 @@ class PcdmisTools:
     #         PcdmisTools.pdconst = importlib.import_module(moduleName, packageName).constants
     #     except ModuleNotFoundError:
     #         raise ValueError(f'未找到 {version} 版本的模块')
+
+    # 报告 AXIS（轴）映射值
+    axisMap = {
+        'X': 'X坐标',
+        'Y': 'Y坐标',
+        'Z': 'Z坐标',
+        'TP': '位置度',
+        'DF': '特征直径',
+        'D': '直径',
+        'A': '角度',
+        'M': '实测值',
+        'R': '半径',
+        'L': '长度',
+        'H': '高度',
+        'V': '矢量',
+        'RT': '报告逼近矢量方向偏差',
+        'S': '曲面矢量方向偏差',
+        'RS': '曲面报告矢量方向偏差',
+        'PD': '销直径',
+        'T': '理论值'
+    }
+
+    @staticmethod
+    def getAxisName(axisSymbol: str) -> str:
+        """
+        根据轴符号获取名称
+
+        Args:
+            axisSymbol(str): 轴符号
+
+        Returns:
+            str: 轴名称
+        """
+        if not isinstance(axisSymbol, str):
+            axisSymbol = str(axisSymbol)
+        return PcdmisTools.axisMap.get(axisSymbol, axisSymbol)
         
     @staticmethod
     def initPcdlrnTools(version: str):
@@ -123,11 +159,11 @@ class PcdmisTools:
         '特征': None,
         '轴': None,
         '单位': None,
-        '标称值': None,
-        '上公差': None,
-        '下公差': None,
-        '上限值': None,
-        '下限值': None,
+        '公称尺寸': None,
+        '上极限偏差': None,
+        '下极限偏差': None,
+        '上极限尺寸': None,
+        '下极限尺寸': None,
         '实测值': None,
         '补偿值': None,
         '类型': None
@@ -177,12 +213,12 @@ class PcdmisTools:
             plus = dim.Plus
             minus = dim.Minus
 
-            data['轴'] = dim.AxisLetter
-            data['标称值'] = round(nominal, precision)
-            data['上公差'] = round(plus, precision)
-            data['下公差'] = -round(minus, precision) # 下公差默认正数表示负数，用负数表示正数
-            data['上限值'] = round(nominal + plus, precision)
-            data['下限值'] = round(nominal - minus, precision)
+            data['轴'] = PcdmisTools.getAxisName(dim.AxisLetter)
+            data['公称尺寸'] = round(nominal, precision)
+            data['上极限偏差'] = round(plus, precision)
+            data['下极限偏差'] = -round(minus, precision) # 下极限偏差默认正数表示负数，用负数表示正数
+            data['上极限尺寸'] = round(nominal + plus, precision)
+            data['下极限尺寸'] = round(nominal - minus, precision)
             data['实测值'] = round(dim.Measured, precision)
             data['补偿值'] = round(dim.Bonus, precision)
             data['类型'] = PcdmisTools.dataType.DIMENSION
@@ -216,15 +252,15 @@ class PcdmisTools:
             data['轴'] = None
 
             nominal = cmd.GetFieldValue(pdconst.LINE1_NOMINAL, i)
-            data['标称值'] = round(nominal, precision)
+            data['公称尺寸'] = round(nominal, precision)
             plus = cmd.GetFieldValue(pdconst.LINE1_PLUSTOL, i)
-            data['上公差'] = round(plus, precision)
+            data['上极限偏差'] = round(plus, precision)
             minustol = cmd.GetFieldValue(pdconst.LINE1_MINUSTOL, i)
             if not PcdmisTools.showNegative:
                 minustol = -minustol
-            data['下公差'] = round(minustol, precision)
-            data['上限值'] = round(nominal + plus, precision)
-            data['下限值'] = round(nominal + minustol, precision)
+            data['下极限偏差'] = round(minustol, precision)
+            data['上极限尺寸'] = round(nominal + plus, precision)
+            data['下极限尺寸'] = round(nominal + minustol, precision)
             meas = cmd.GetFieldValue(pdconst.LINE1_MEAS, i)
             data['实测值'] = round(meas, precision)
             bonus = cmd.GetFieldValue(pdconst.LINE1_BONUS, i)
@@ -246,14 +282,14 @@ class PcdmisTools:
 
             data['命令名'] = cmd.GetFieldValue(pdconst.LINE2_TBLHDR, i) + runoutType
             data['特征'] = cmd.GetFieldValue(pdconst.LINE2_FEATNAME, i)
-            data['轴'] = cmd.GetFieldValue(pdconst.LINE2_AXIS, i)
+            data['轴'] = PcdmisTools.getAxisName(cmd.GetFieldValue(pdconst.LINE2_AXIS, i))
 
             nominal = cmd.GetFieldValue(pdconst.LINE2_NOMINAL, i)
-            data['标称值'] = round(nominal, precision)
+            data['公称尺寸'] = round(nominal, precision)
             plus = cmd.GetFieldValue(pdconst.LINE2_PLUSTOL, i)
-            data['上公差'] = round(plus, precision)
+            data['上极限偏差'] = round(plus, precision)
             minustol = cmd.GetFieldValue(pdconst.LINE2_MINUSTOL, i)
-            data['上限值'] = data['上公差']
+            data['上极限尺寸'] = data['上极限偏差']
             meas = cmd.GetFieldValue(pdconst.LINE2_MEAS, i)
             data['实测值'] = round(meas, precision)
             bonus = cmd.GetFieldValue(pdconst.LINE2_BONUS, i)
@@ -283,30 +319,30 @@ class PcdmisTools:
         datas = []
 
         id = tolCmd.ID
-        sizeText = tolCmd.sizeText
+        sizeText = tolCmd.SizeText
         sizeAxis = tolCmd.SizeAxis
         reportUnits = tolCmd.ReportUnits
-        sizeNominal = tolCmd.sizeNominal
-        sizePlusTol = tolCmd.sizePlusTol
-        sizeMinusTol = tolCmd.sizeMinusTol
-        sizeMeasured = tolCmd.sizeMeasured
+        sizeNominal = tolCmd.SizeNominal
+        sizePlusTol = tolCmd.SizePlusTol
+        sizeMinusTol = tolCmd.SizeMinusTol
+        sizeMeasured = tolCmd.SizeMeasured
 
         # 形位公差评价对象自身的尺寸信息
         for i in range(1, tolCmd.sizeCountCombined + 1):
             data = PcdmisTools.dataTemplate.copy()
             data['命令名'] = id + ' 尺寸'
             data['特征'] = sizeText(i)
-            data['轴'] = sizeAxis(i)
+            data['轴'] = PcdmisTools.getAxisName(sizeAxis(i))
             data['单位'] = reportUnits
-            data['标称值'] = round(sizeNominal(i), precision)
-            data['上公差'] = round(sizePlusTol(i), precision)
+            data['公称尺寸'] = round(sizeNominal(i), precision)
+            data['上极限偏差'] = round(sizePlusTol(i), precision)
             if not PcdmisTools.showNegative:
                 sizeMinusTolValue = -sizeMinusTol(i)
             else:
                 sizeMinusTolValue = sizeMinusTol(i)
-            data['下公差'] = round(sizeMinusTolValue, precision)
-            data['上限值'] = round(sizeNominal(i) + sizePlusTol(i), precision)
-            data['下限值'] = round(sizeNominal(i) + sizeMinusTolValue, precision)
+            data['下极限偏差'] = round(sizeMinusTolValue, precision)
+            data['上极限尺寸'] = round(sizeNominal(i) + sizePlusTol(i), precision)
+            data['下极限尺寸'] = round(sizeNominal(i) + sizeMinusTolValue, precision)
 
             data['实测值'] = round(sizeMeasured(i), precision)
             data['类型'] = PcdmisTools.dataType.FCFDIM
@@ -316,9 +352,9 @@ class PcdmisTools:
         id = tolCmd.ID
         featureID = tolCmd.FeatureID
         segmentAxis = tolCmd.SegmentAxis
-        segmentDimNominal = tolCmd.segmentDimNominal
-        segmentDimPlusTol = tolCmd.segmentDimPlusTol
-        segmentDimMeasured = tolCmd.segmentDimMeasured
+        segmentDimNominal = tolCmd.SegmentDimNominal
+        segmentDimPlusTol = tolCmd.SegmentDimPlusTol
+        segmentDimMeasured = tolCmd.SegmentDimMeasured
         segmentDimBonus = tolCmd.SegmentDimBonus
 
         # 形位公差
@@ -327,11 +363,11 @@ class PcdmisTools:
                 data = PcdmisTools.dataTemplate.copy()
                 data['命令名'] = id
                 data['特征'] = featureID(j)
-                data['轴'] = segmentAxis(j)
+                data['轴'] = PcdmisTools.getAxisName(segmentAxis(j))
                 data['单位'] = tolCmd.ReportUnits
-                data['标称值'] = round(segmentDimNominal(i, j), precision)
-                data['上公差'] = round(segmentDimPlusTol(i, j), precision)
-                data['上限值'] = data['上公差']
+                data['公称尺寸'] = round(segmentDimNominal(i, j), precision)
+                data['上极限偏差'] = round(segmentDimPlusTol(i, j), precision)
+                data['上极限尺寸'] = data['上极限偏差']
                 data['实测值'] = round(segmentDimMeasured(i, j), precision)
                 data['补偿值'] = round(segmentDimBonus(i, j), precision)
                 data['类型'] = PcdmisTools.dataType.FCF
@@ -398,7 +434,7 @@ class PcdmisTools:
         sumaryString = ''
         for data in dataList:
             for key, value in data.items():
-                if key in ['上限值', '下限值', '补偿值', '实测值']:
+                if key in ['上极限尺寸', '下极限尺寸', '补偿值', '实测值']:
                     continue
                 sumaryString += f'{value}'
         return hashlib.sha256(sumaryString.encode('utf-8')).hexdigest()
