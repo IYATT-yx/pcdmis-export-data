@@ -5,3 +5,7 @@ dist
 *.spec
 venv
 buildTime.txt
+*.PRG*
+*.xlsx
+*.csv
+*.log
