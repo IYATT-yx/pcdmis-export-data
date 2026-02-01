@@ -64,7 +64,11 @@ class ExcelTools:
 
     @staticmethod
     def setCellPrecision(cell, precision: int):
-        cell.number_format = '0.' + '0' * precision
+        if precision == 0:
+            prefix = '0'
+        else:
+            prefix = '0.'
+        cell.number_format = prefix + '0' * precision
     
     @staticmethod
     def writeHeader(dataList: list[dict]):
@@ -86,14 +90,21 @@ class ExcelTools:
                     ExcelTools.setColWidth(col, 12)
                 elif col > 4:
                     value = dataList[col - 5][PcdmisTools.dataKeys[row - ExcelTools.currentRow]]
-                    if value == 0:
-                        value = ''
+                    # if value == 0:
+                    #     value = ''
+                    if value is None:
+                        value = '#N/A'
                     cell = ExcelTools.sheet.cell(
                         row,
                         col,
                         value
                     )
-                    ExcelTools.setCellPrecision(cell, constants.Data.precision)
+                    if value == '#N/A':
+                        pass
+                    elif value == 0:
+                        ExcelTools.setCellPrecision(cell, 0)
+                    else:
+                        ExcelTools.setCellPrecision(cell, constants.Data.precision)
                     ExcelTools.setColWidth(col, 13)
                     ExcelTools.setCellWrap(row, col)
         ExcelTools.currentRow = endRow
@@ -129,9 +140,9 @@ class ExcelTools:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(timeTuple, 3))
             else:
                 data = dataList[col - 5]
-                nominal = data['标称值']
-                plus = data['上公差']
-                minus = data['下公差']
+                nominal = data['公称尺寸']
+                plus = data['上极限偏差']
+                minus = data['下极限偏差']
                 measured = data['实测值']
                 bonus = data['补偿值']
                 dataType = data['类型']
@@ -143,6 +154,9 @@ class ExcelTools:
                 )
 
                 ExcelTools.setCellPrecision(cell, constants.Data.precision)
+
+                if nominal is None:
+                    nominal = 0
 
                 if dataType == PcdmisTools.dataType.FCF:
                     if measured > nominal + plus + bonus:
@@ -202,8 +216,8 @@ class ExcelTools:
             Dialog.log('未读取到测量数据', Dialog.WARNING)
             return 0
         
-        # 实际记录的摘要为：测量项目字符串摘要 + 本工具版本号
-        digest = PcdmisTools.calcDigest(dataList) + '_' + constants.Basic.version
+        # 实际记录的摘要为：本工具版本号 + 测量项目字符串摘要
+        digest = constants.Basic.version + '_' + PcdmisTools.calcDigest(dataList)
         Dialog.log(f'测量项目的综合特征摘要：{digest}')
         if digest != ExcelTools.getDigestFromExcel():
             ExcelTools.writeHeader(dataList)
