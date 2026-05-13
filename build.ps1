@@ -4,15 +4,21 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 python.exe -m pip install --upgrade pip
 pip install -r requirements.txt
-pip install nuitka==2.8.9
+pip install nuitka==4.1
 
 python .\savebuildtime.py
 
-nuitka --standalone --remove-output --windows-console-mode=disable `
---include-module=pcdlrnconst.pcdlrnconst20232 --include-module=pcdlrnconst.pcdlrnconst2019R2 `
+nuitka --standalone `
+--remove-output `
+--windows-console-mode=disable `
+--lto=no `
+--include-module=pcdlrnconst.pcdlrnconst20232 `
+--include-module=pcdlrnconst.pcdlrnconst2019R2 `
 --enable-plugin=tk-inter `
---windows-icon-from-ico=.\icon.ico --include-data-file=.\icon.ico=.\ `
---output-dir=dist --output-filename=pcdmis-export-data_win_amd64 `
+--windows-icon-from-ico=.\icon.ico `
+--include-data-file=.\icon.ico=.\ `
+--output-dir=dist `
+--output-filename=pcdmis-export-data_win_amd64 `
 .\pcdmis-export-data.py
 
 $endTime = Get-Date
