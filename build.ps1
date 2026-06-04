@@ -11,7 +11,8 @@ python .\savebuildtime.py
 nuitka --standalone `
 --remove-output `
 --windows-console-mode=disable `
---lto=no `
+--lto=yes `
+--no-deployment-flag=self-contained `
 --include-module=pcdlrnconst.pcdlrnconst20232 `
 --include-module=pcdlrnconst.pcdlrnconst2019R2 `
 --enable-plugin=tk-inter `
