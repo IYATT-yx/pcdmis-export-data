@@ -389,7 +389,8 @@ class PcdmisTools:
         
         dataList = []
         idx = 0
-        while idx < PcdmisTools.cmds.Count:
+        numberOfCmds: int = PcdmisTools.cmds.Count
+        while idx < numberOfCmds:
             cmd = PcdmisTools.cmds[idx]
             dimensionData, idx = PcdmisTools.getDimensionFromCmd(idx, cmd, constants.Data.precision)
             if dimensionData is not None:
@@ -431,13 +432,18 @@ class PcdmisTools:
         """
         if len(dataList) == 0:
             raise CustomException('数据为空', CustomException.ERROR)
-        sumaryString = ''
+            
+        exclude_keys = {'上极限尺寸', '下极限尺寸', '补偿值', '实测值'} # 💡 用 set 代替 list，查找复杂度从 O(n) 降到 O(1)
+        fragments = []
+        
         for data in dataList:
             for key, value in data.items():
-                if key in ['上极限尺寸', '下极限尺寸', '补偿值', '实测值']:
+                if key in exclude_keys:
                     continue
-                sumaryString += f'{value}'
-        return hashlib.sha256(sumaryString.encode('utf-8')).hexdigest()
+                fragments.append(str(value))
+                
+        summaryString = "".join(fragments)
+        return hashlib.sha256(summaryString.encode('utf-8')).hexdigest()
     
     @staticmethod
     def removeExternalCommand():
