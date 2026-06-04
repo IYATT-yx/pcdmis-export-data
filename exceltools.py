@@ -93,13 +93,13 @@ class ExcelTools:
                     # if value == 0:
                     #     value = ''
                     if value is None:
-                        value = '#N/A'
+                        value = '/'
                     cell = ExcelTools.sheet.cell(
                         row,
                         col,
                         value
                     )
-                    if value == '#N/A':
+                    if value == '/':
                         pass
                     elif value == 0:
                         ExcelTools.setCellPrecision(cell, 0)
