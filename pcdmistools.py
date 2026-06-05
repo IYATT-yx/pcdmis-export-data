@@ -49,7 +49,7 @@ class PcdmisTools:
         'DF': '特征直径',
         'D': '直径',
         'A': '角度',
-        'M': '实测值',
+        'M': '综合评价',
         'R': '半径',
         'L': '长度',
         'H': '高度',
@@ -155,17 +155,17 @@ class PcdmisTools:
         return PcdmisTools.app.VersionString, PcdmisTools.part.Name, PcdmisTools.part.FullName
     
     dataTemplate = {
-        '命令名': None,
-        '特征': None,
+        '标识符': None,
+        '相关特征': None,
         '轴': None,
         '单位': None,
-        '公称尺寸': None,
+        '理论值': None,
         '上极限偏差': None,
         '下极限偏差': None,
-        '上极限尺寸': None,
-        '下极限尺寸': None,
+        '规格上限': None,
+        '规格下限': None,
         '实测值': None,
-        '补偿值': None,
+        '实体补偿': None,
         '类型': None
     }
 
@@ -199,12 +199,13 @@ class PcdmisTools:
         
         data = PcdmisTools.dataTemplate.copy()
         datas = []
-        measured = cmd.GetFieldValue(pdconst.DIM_MEASURED, 0)
+        getFieldValue = cmd.GetFieldValue
+        measured = getFieldValue(pdconst.DIM_MEASURED, 0)
         if measured != False: # 排除形位公差和基准
-            data['命令名'] = dim.ID
-            data['特征'] = dim.Feat1 + ' ' + dim.Feat2 + ' ' + dim.Feat3
-            data['单位'] = cmd.GetFieldValue(pdconst.UNIT_TYPE, 0)
-            if cmd.GetFieldValue(pdconst.AXIS, 0) == False and PcdmisTools.cmds[idx + 1].ID == '': # 这是一个位置命令，继续下一条命令
+            data['标识符'] = dim.ID
+            data['相关特征'] = dim.Feat1 + ' ' + dim.Feat2 + ' ' + dim.Feat3
+            data['单位'] = getFieldValue(pdconst.UNIT_TYPE, 0)
+            if getFieldValue(pdconst.AXIS, 0) == False and PcdmisTools.cmds[idx + 1].ID == '': # 这是一个位置命令，继续下一条命令
                 idx += 1
                 cmd = PcdmisTools.cmds[idx]
                 dim = cmd.DimensionCommand
@@ -214,13 +215,13 @@ class PcdmisTools:
             minus = dim.Minus
 
             data['轴'] = PcdmisTools.getAxisName(dim.AxisLetter)
-            data['公称尺寸'] = round(nominal, precision)
+            data['理论值'] = round(nominal, precision)
             data['上极限偏差'] = round(plus, precision)
             data['下极限偏差'] = -round(minus, precision) # 下极限偏差默认正数表示负数，用负数表示正数
-            data['上极限尺寸'] = round(nominal + plus, precision)
-            data['下极限尺寸'] = round(nominal - minus, precision)
+            data['规格上限'] = round(nominal + plus, precision)
+            data['规格下限'] = round(nominal - minus, precision)
             data['实测值'] = round(dim.Measured, precision)
-            data['补偿值'] = round(dim.Bonus, precision)
+            data['实体补偿'] = round(dim.Bonus, precision)
             data['类型'] = PcdmisTools.dataType.DIMENSION
 
             datas.append(data)
@@ -242,58 +243,61 @@ class PcdmisTools:
             return None, idx
         
         datas = []
+        getFieldValue = cmd.GetFieldValue
+        showNegative = PcdmisTools.showNegative
+        FCFDIM = PcdmisTools.dataType.FCFDIM
 
         # 形位公差评价对象自身的尺寸信息
         for i in range(1, cmd.GetDataTypeCount(pdconst.LINE1_MEAS) + 1):
             data = PcdmisTools.dataTemplate.copy()
-            data['单位'] = cmd.GetFieldValue(pdconst.UNIT_TYPE, 0)
-            data['命令名'] = cmd.GetFieldValue(pdconst.LINE1_TBLHDR, i)
-            data['特征'] = cmd.GetFieldValue(pdconst.LINE1_FEATNAME, i)
+            data['单位'] = getFieldValue(pdconst.UNIT_TYPE, 0)
+            data['标识符'] = getFieldValue(pdconst.LINE1_TBLHDR, i)
+            data['相关特征'] = getFieldValue(pdconst.LINE1_FEATNAME, i)
             data['轴'] = None
 
-            nominal = cmd.GetFieldValue(pdconst.LINE1_NOMINAL, i)
-            data['公称尺寸'] = round(nominal, precision)
-            plus = cmd.GetFieldValue(pdconst.LINE1_PLUSTOL, i)
+            nominal = getFieldValue(pdconst.LINE1_NOMINAL, i)
+            data['理论值'] = round(nominal, precision)
+            plus = getFieldValue(pdconst.LINE1_PLUSTOL, i)
             data['上极限偏差'] = round(plus, precision)
-            minustol = cmd.GetFieldValue(pdconst.LINE1_MINUSTOL, i)
-            if not PcdmisTools.showNegative:
+            minustol = getFieldValue(pdconst.LINE1_MINUSTOL, i)
+            if not showNegative:
                 minustol = -minustol
             data['下极限偏差'] = round(minustol, precision)
-            data['上极限尺寸'] = round(nominal + plus, precision)
-            data['下极限尺寸'] = round(nominal + minustol, precision)
-            meas = cmd.GetFieldValue(pdconst.LINE1_MEAS, i)
+            data['规格上限'] = round(nominal + plus, precision)
+            data['规格下限'] = round(nominal + minustol, precision)
+            meas = getFieldValue(pdconst.LINE1_MEAS, i)
             data['实测值'] = round(meas, precision)
-            bonus = cmd.GetFieldValue(pdconst.LINE1_BONUS, i)
-            data['补偿值'] = round(bonus, precision)
-            data['类型'] = PcdmisTools.dataType.FCFDIM
+            bonus = getFieldValue(pdconst.LINE1_BONUS, i)
+            data['实体补偿'] = round(bonus, precision)
+            data['类型'] = FCFDIM
 
             datas.append(data)
 
         # 形位公差
         for i in range(1, cmd.GetDataTypeCount(pdconst.LINE2_MEAS) + 1):
             data = PcdmisTools.dataTemplate.copy()
-            data['单位'] = cmd.GetFieldValue(pdconst.UNIT_TYPE, 0)
+            data['单位'] = getFieldValue(pdconst.UNIT_TYPE, 0)
 
-            runoutType = cmd.GetFieldValue(pdconst.FCF_RUNOUT_TYPE, i)
+            runoutType = getFieldValue(pdconst.FCF_RUNOUT_TYPE, i)
             if runoutType == False:
                 runoutType = ''
             else:
                 runoutType = ' - ' + runoutType
 
-            data['命令名'] = cmd.GetFieldValue(pdconst.LINE2_TBLHDR, i) + runoutType
-            data['特征'] = cmd.GetFieldValue(pdconst.LINE2_FEATNAME, i)
-            data['轴'] = PcdmisTools.getAxisName(cmd.GetFieldValue(pdconst.LINE2_AXIS, i))
+            data['标识符'] = getFieldValue(pdconst.LINE2_TBLHDR, i) + runoutType
+            data['相关特征'] = getFieldValue(pdconst.LINE2_FEATNAME, i)
+            data['轴'] = PcdmisTools.getAxisName(getFieldValue(pdconst.LINE2_AXIS, i))
 
-            nominal = cmd.GetFieldValue(pdconst.LINE2_NOMINAL, i)
-            data['公称尺寸'] = round(nominal, precision)
-            plus = cmd.GetFieldValue(pdconst.LINE2_PLUSTOL, i)
+            nominal = getFieldValue(pdconst.LINE2_NOMINAL, i)
+            data['理论值'] = round(nominal, precision)
+            plus = getFieldValue(pdconst.LINE2_PLUSTOL, i)
             data['上极限偏差'] = round(plus, precision)
-            minustol = cmd.GetFieldValue(pdconst.LINE2_MINUSTOL, i)
-            data['上极限尺寸'] = data['上极限偏差']
-            meas = cmd.GetFieldValue(pdconst.LINE2_MEAS, i)
+            minustol = getFieldValue(pdconst.LINE2_MINUSTOL, i)
+            data['规格上限'] = data['上极限偏差']
+            meas = getFieldValue(pdconst.LINE2_MEAS, i)
             data['实测值'] = round(meas, precision)
-            bonus = cmd.GetFieldValue(pdconst.LINE2_BONUS, i)
-            data['补偿值'] = round(bonus, precision)
+            bonus = getFieldValue(pdconst.LINE2_BONUS, i)
+            data['实体补偿'] = round(bonus, precision)
             data['类型'] = PcdmisTools.dataType.FCF
 
             datas.append(data)
@@ -330,19 +334,19 @@ class PcdmisTools:
         # 形位公差评价对象自身的尺寸信息
         for i in range(1, tolCmd.sizeCountCombined + 1):
             data = PcdmisTools.dataTemplate.copy()
-            data['命令名'] = id + ' 尺寸'
-            data['特征'] = sizeText(i)
+            data['标识符'] = id + ' 尺寸'
+            data['相关特征'] = sizeText(i)
             data['轴'] = PcdmisTools.getAxisName(sizeAxis(i))
             data['单位'] = reportUnits
-            data['公称尺寸'] = round(sizeNominal(i), precision)
+            data['理论值'] = round(sizeNominal(i), precision)
             data['上极限偏差'] = round(sizePlusTol(i), precision)
             if not PcdmisTools.showNegative:
                 sizeMinusTolValue = -sizeMinusTol(i)
             else:
                 sizeMinusTolValue = sizeMinusTol(i)
             data['下极限偏差'] = round(sizeMinusTolValue, precision)
-            data['上极限尺寸'] = round(sizeNominal(i) + sizePlusTol(i), precision)
-            data['下极限尺寸'] = round(sizeNominal(i) + sizeMinusTolValue, precision)
+            data['规格上限'] = round(sizeNominal(i) + sizePlusTol(i), precision)
+            data['规格下限'] = round(sizeNominal(i) + sizeMinusTolValue, precision)
 
             data['实测值'] = round(sizeMeasured(i), precision)
             data['类型'] = PcdmisTools.dataType.FCFDIM
@@ -361,15 +365,15 @@ class PcdmisTools:
         for i in range(1, tolCmd.SegmentCount + 1):
             for j in range(1, tolCmd.FeatureCount + 1):
                 data = PcdmisTools.dataTemplate.copy()
-                data['命令名'] = id
-                data['特征'] = featureID(j)
+                data['标识符'] = id
+                data['相关特征'] = featureID(j)
                 data['轴'] = PcdmisTools.getAxisName(segmentAxis(j))
                 data['单位'] = tolCmd.ReportUnits
-                data['公称尺寸'] = round(segmentDimNominal(i, j), precision)
+                data['理论值'] = round(segmentDimNominal(i, j), precision)
                 data['上极限偏差'] = round(segmentDimPlusTol(i, j), precision)
-                data['上极限尺寸'] = data['上极限偏差']
+                data['规格上限'] = data['上极限偏差']
                 data['实测值'] = round(segmentDimMeasured(i, j), precision)
-                data['补偿值'] = round(segmentDimBonus(i, j), precision)
+                data['实体补偿'] = round(segmentDimBonus(i, j), precision)
                 data['类型'] = PcdmisTools.dataType.FCF
 
                 datas.append(data)
@@ -421,28 +425,18 @@ class PcdmisTools:
     
     @staticmethod
     def calcDigest(dataList: list[dict]) -> str:
-        """
-        计算测量项目的摘要
-
-        Params:
-            dataList: 测量数据
-
-        Returns:
-            返回摘要的十六进制字符串（64位）
-        """
-        if len(dataList) == 0:
+        if not dataList:
             raise CustomException('数据为空', CustomException.ERROR)
             
-        exclude_keys = {'上极限尺寸', '下极限尺寸', '补偿值', '实测值'} # 💡 用 set 代替 list，查找复杂度从 O(n) 降到 O(1)
-        fragments = []
+        exclude_keys = {'规格上限', '规格下限', '实体补偿', '实测值'} # 确保是 set
         
-        for data in dataList:
-            for key, value in data.items():
-                if key in exclude_keys:
-                    continue
-                fragments.append(str(value))
-                
-        summaryString = "".join(fragments)
+        summaryString = ''.join(
+            str(value)
+            for data in dataList
+            for key, value in data.items()
+            if key not in exclude_keys
+        )
+        
         return hashlib.sha256(summaryString.encode('utf-8')).hexdigest()
     
     @staticmethod

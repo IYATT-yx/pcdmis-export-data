@@ -140,11 +140,11 @@ class ExcelTools:
                 ExcelTools.sheet.cell(ExcelTools.currentRow, col, CommonTools.getTimeStamp(timeTuple, 3))
             else:
                 data = dataList[col - 5]
-                nominal = data['公称尺寸']
+                nominal = data['理论值']
                 plus = data['上极限偏差']
                 minus = data['下极限偏差']
                 measured = data['实测值']
-                bonus = data['补偿值']
+                bonus = data['实体补偿']
                 dataType = data['类型']
 
                 cell = ExcelTools.sheet.cell(
