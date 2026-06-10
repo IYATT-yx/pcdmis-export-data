@@ -59,14 +59,30 @@ Sub Main
     ' ==============================================================================
     Dim cmds As Object
     Set cmds = part.Commands
+    Dim cmdCount As Long
+    cmdCount = cmds.Count
     Dim cmd As Object
-    For Each cmd In cmds
+    Dim versionYear As Long
+    Dim i As Long
+    For i = 1 To cmdCount
+        Set cmd = cmds(i)
         If readDimension(cmd, fields) Then
             lineCount = lineCount + 1
             ReDim Preserve dataLineList(0 To lineCount)
-            dataLineList(lineCount) = joinCsvRowFields(fields, "")  
+            dataLineList(lineCount) = joinCsvRowFields(fields, "")
         End If
-    Next cmd
+        versionYear = getPcdmisYear(pcdmisVersion)
+        If versionYear >= 2022 Then
+            readFcf(cmd, fields, dataLineList, lineCount)
+        ElseIf versionYear = -1 Then
+            Set cmds = Nothing
+            Set part = Nothing
+            MsgBox "Error: Failed to parse PC-DMIS version string.", 16, "Version Error"
+            Exit Sub
+        Else
+            readFcfOld(cmd, fields, dataLineList, lineCount)
+        End If
+    Next i
 
     ' ==============================================================================
     If lineCount > 1 Then
@@ -77,8 +93,43 @@ Sub Main
         MsgBox "Error: No production data was found.", 16, "Data Error"
     End If
 
+    Set cmds = Nothing
     Set part = Nothing
 End Sub
+
+' =============================================================================
+' Purpose:     Extracts the 4-digit graduation year from the PC-DMIS version string.
+'              Ensures the extracted year falls within a realistic lifecycle window.
+'
+' Parameters:
+'   - versionStr: [In] [ByVal] The raw version metadata retrieved from the 
+'                 PC-DMIS application connection (e.g., "2023.1", "2019 R2").
+'
+' Returns:     A Long representing the 4-digit year if successfully validated; 
+'              Returns -1 if the input is null, malformed, or out of bounds.
+' =============================================================================
+Function getPcdmisYear(ByVal versionStr As String) As Long
+    getPcdmisYear = -1
+    
+    Dim cleanStr As String
+    cleanStr = Trim(versionStr)
+    
+    If Len(cleanStr) < 4 Then
+        Exit Function
+    End If
+    
+    Dim yearPart As String
+    yearPart = Left(cleanStr, 4)
+    
+    If IsNumeric(yearPart) Then
+        Dim convertedYear As Long
+        convertedYear = CLng(yearPart)
+        
+        If convertedYear >= 1990 And convertedYear <= 2099 Then
+            getPcdmisYear = convertedYear
+        End If
+    End If
+End Function
 
 ' =============================================================================
 ' CONSTANTS: PC-DMIS Dimension Type
@@ -86,17 +137,29 @@ End Sub
 Const DATA_TYPE_DIMENSION     = "D"
 Const DATA_TYPE_FCF           = "F"
 Const DATA_TYPE_FCFDIM        = "FD"
-Const DATA_TYPE_UNKNOWN       = "U"
 ' ==============================================================================
 
+' =============================================================================
+' Purpose: Evaluates a PC-DMIS command node and extracts measurement telemetry 
+'          if the command represents a legacy dimension item.
+'
+' Parameters:
+'   - cmd:    [In]  [ByRef] The generic command object pointer retrieved from 
+'                           the measurement routine's command collection.
+'   - fields: [Out] [ByRef] A 1D string array buffer allocated to store the 
+'                           extracted feature metrics for CSV serialization.
+'
+' Returns: True if the command is a valid legacy dimension and its data is 
+'          successfully extracted; False if the node fails validation checks.
+' =============================================================================
 Function readDimension(ByRef cmd As Object, ByRef fields() as String) As Boolean
     If cmd.IsDimension Then
         readDimension = True
 
         Dim dimObj As Object
         Set dimObj = cmd.DimensionCommand
-        Erase fields
 
+        Erase fields
         fields(0) = dimObj.ID
         fields(1) = dimObj.Feat1
         fields(2) = dimObj.Feat2
@@ -114,6 +177,157 @@ Function readDimension(ByRef cmd As Object, ByRef fields() as String) As Boolean
     End If
 End Function
 
+' =============================================================================
+' Purpose: Evaluates a PC-DMIS command node and extracts measurement telemetry 
+'          if the command represents an older legacy FCF (Feature Control Frame)
+'          used in PC-DMIS 2021 and earlier versions. 
+'          Appends the formatted CSV rows directly to the data line list.
+'
+' Parameters:
+'   - cmd:          [In]  [ByRef] The generic command object pointer retrieved from 
+'                                 the measurement routine's command collection.
+'   - fields:       [Out] [ByRef] A 1D string array buffer allocated to store the 
+'                                 extracted feature metrics for CSV serialization.
+'   - dataLineList: [Out] [ByRef] A dynamic string array that accumulates the 
+'                                 final serialized CSV row strings.
+'   - lineCount:    [In/Out] [ByRef] The cumulative total counter of rows within 
+'                                    dataLineList, incremented upon each insertion.
+'
+' Returns: True if the command is a valid legacy FCF (v2021 or earlier) and its data 
+'          is successfully extracted; False if the node fails validation checks.
+' =============================================================================
+Function readFcfOld(ByRef cmd As Object, ByRef fields() As String, ByRef dataLineList() As String, ByRef lineCount As Long) As Boolean
+    If cmd.IsFcfCommand Then
+        readFcfOld = True
+
+        Dim idid As String
+        idid = cmd.ID
+        Dim total As Long
+        total = cmd.GetDataTypeCount(LINE1_MEAS)
+        Dim unitType As String
+        unitType = cmd.GetFieldValue(UNIT_TYPE, 0)
+        Dim i As Long
+        For i = 1 To total
+            Erase fields
+            fields(0) = idid
+            fields(1) = cmd.GetFieldValue(LINE1_FEATNAME, i)
+            fields(2) = "/"
+            fields(3) = "/"
+            fields(4) = "/"
+            fields(5) = unitType
+            fields(6) = cmd.GetFieldValue(LINE1_NOMINAL, i)
+            fields(7) = cmd.GetFieldValue(LINE1_PLUSTOL, i)
+            fields(8) = cmd.GetFieldValue(LINE1_MINUSTOL, i)
+            fields(9) = cmd.GetFieldValue(LINE1_MEAS, i)
+            fields(10) = cmd.GetFieldValue(LINE1_BONUS, i)
+            fields(11) = DATA_TYPE_FCFDIM
+            lineCount = lineCount + 1
+            ReDim Preserve dataLineList(0 To lineCount)
+            dataLineList(lineCount) = joinCsvRowFields(fields, "")
+        Next i
+
+        total = cmd.GetDataTypeCount(LINE2_MEAS)
+        For i = 1 To total
+            Erase fields
+            fields(0) = idid
+            fields(1) = cmd.GetFieldValue(LINE2_FEATNAME, i)
+            fields(4) = cmd.GetFieldValue(LINE2_AXIS, i)
+            fields(5) = unitType
+            fields(6) = "0"
+            fields(7) = cmd.GetFieldValue(LINE2_PLUSTOL, i)
+            fields(8) = "0"
+            fields(9) = cmd.GetFieldValue(LINE2_MEAS, i)
+            fields(10) = cmd.GetFieldValue(LINE2_BONUS, i)
+            fields(11) = DATA_TYPE_FCF
+            lineCount = lineCount + 1
+            ReDim Preserve dataLineList(0 To lineCount)
+            dataLineList(lineCount) = joinCsvRowFields(fields, "")
+        Next i
+    Else
+        readFcfOld = False
+    End If
+End Function
+
+' =============================================================================
+' Purpose: Evaluates a PC-DMIS command node and extracts multi-segment size and 
+'          dimension feature telemetry if it represents a newer Geometric Tolerance 
+'          command used in PC-DMIS 2022 and later versions. 
+'          Appends the formatted CSV rows to the data line list.
+'
+' Parameters:
+'   - cmd:          [In]  [ByRef] The generic command object pointer retrieved from 
+'                                 the measurement routine's command collection.
+'   - fields:       [Out] [ByRef] A 1D string array buffer allocated to store the 
+'                                 extracted feature metrics for CSV serialization.
+'   - dataLineList: [Out] [ByRef] A dynamic string array that accumulates the 
+'                                 final serialized CSV row strings.
+'   - lineCount:    [In/Out] [ByRef] The cumulative total counter of rows within 
+'                                    dataLineList, incremented upon each insertion.
+'
+' Returns: True if the command is a valid Geometric Tolerance command (v2022 or later) 
+'          and its data is successfully extracted; False if the node fails validation checks.
+' =============================================================================
+Function readFcf(ByRef cmd As Object, ByRef fields() As String, ByRef dataLineList() As String, ByRef lineCount As Long) As Boolean
+    If cmd.IsToleranceCommand Then
+        readFcf = True
+
+        Dim tolCmd As Object
+        Set tolCmd = cmd.ToleranceCommand
+        Dim idid As String
+        idid = tolCmd.ID
+        Dim unitType As String
+        unitType = tolCmd.ReportUnits
+        Dim featureTotal As Long
+        featureTotal = tolCmd.FeatureCount
+
+        Dim total As Long
+        Dim j As Long
+        Dim k As Long
+        total = tolCmd.sizeCountCombined
+        For j = 1 To total
+            Erase fields
+            fields(0) = idid
+            fields(1) = tolCmd.SizeText(j)
+            fields(2) = "/"
+            fields(3) = "/"
+            fields(4) = tolCmd.SizeAxis(j)
+            fields(5) = unitType
+            fields(6) = tolCmd.SizeNominal(j)
+            fields(7) = tolCmd.SizePlusTol(j)
+            fields(8) = tolCmd.SizeMinusTol(j)
+            fields(9) = tolCmd.SizeMeasured(j)
+            fields(10) = "0"
+            fields(11) = DATA_TYPE_FCFDIM
+            lineCount = lineCount + 1
+            ReDim Preserve dataLineList(0 To lineCount)
+            dataLineList(lineCount) = joinCsvRowFields(fields, "")
+        Next j
+
+        total = tolCmd.SegmentCount
+        For k = 1 To total
+            For j = 1 To featureTotal
+                Erase fields
+                fields(0) = idid
+                fields(1) = tolCmd.FeatureID(j)
+                fields(2) = "/"
+                fields(3) = "/"
+                fields(4) = tolCmd.SegmentAxis(j)
+                fields(5) = unitType
+                fields(6) = "0"
+                fields(7) = tolCmd.SegmentDimPlusTol(k, j)
+                fields(8) = "0"
+                fields(9) = tolCmd.SegmentDimMeasured(k, j)
+                fields(10) = tolCmd.SegmentDimBonus(k, j)
+                fields(11) = DATA_TYPE_FCF
+                lineCount = lineCount + 1
+                ReDim Preserve dataLineList(0 To lineCount)
+                dataLineList(lineCount) = joinCsvRowFields(fields, "")
+            Next j
+        Next k
+    Else
+        readFcf = False
+    End If
+End Function
 
 ' MachineConnectionStatus Enumeration
 ' ==============================================================================
@@ -199,7 +413,7 @@ End Function
 ' =============================================================================
 Function saveCsv(ByVal filePath As String, ByRef dataLines() As String, ByVal isAppendMode As Boolean) As Boolean
     On Error GoTo ErrorHandler
-    SaveCsv = False
+    saveCsv = False
 
     Dim fso As Object
     Set fso = CreateObject("Scripting.FileSystemObject")
@@ -240,7 +454,7 @@ Function saveCsv(ByVal filePath As String, ByRef dataLines() As String, ByVal is
     stream.Close
     Set stream = Nothing
     Set fso = Nothing
-    SaveCsv = True
+    saveCsv = True
     Exit Function
 
 ErrorHandler:
