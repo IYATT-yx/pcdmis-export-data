@@ -93,6 +93,10 @@ Sub Main
         MsgBox "Error: No production data was found.", 16, "Data Error"
     End If
 
+    On Error Resume Next
+        part.Save
+    On Error GoTo 0
+
     Set cmds = Nothing
     Set part = Nothing
 End Sub
