@@ -1,43 +1,17 @@
+"""
+file: common.py
+description: 功能模块
+author: IYATT-yx
+copyright:  Copyright (c) 2025-2026 IYATT-yx.
+            Licensed under the MIT License. See LICENSE file in the project root for full license information.
+"""
 import constants
 
 import os
 import sys
-import time
-import pathlib
 import ctypes
 
-class CommonTools:
-    @staticmethod
-    def getTimeStamp(timeTuple, mode: int = 0) -> str:
-        """
-        获取当前时间戳
-
-        Params:
-            timeTuple: 时间元组 time.localtime()
-            mode (int): 时间戳格式，0为完整时间戳，1为日期戳；2为日期戳，带分隔符号；3为时间戳，带分隔符
-
-        Returns:
-            str: 时间戳
-        """
-        match mode:
-            case 0:
-                return time.strftime("%Y%m%d_%H%M%S", timeTuple)
-            case 1:
-                return time.strftime("%Y%m%d", timeTuple)
-            case 2:
-                return time.strftime("%Y-%m-%d", timeTuple)
-            case 3:
-                return time.strftime("%H:%M:%S", timeTuple)
-            case 4:
-                return time.strftime("%H%M%S", timeTuple)
-
-    @staticmethod
-    def removeFileExtension(path: str) -> str:
-        """
-        移除文件扩展名
-        """
-        return pathlib.Path(path).stem
-    
+class Common:
     @staticmethod
     def getInitFolder() -> str:
         """获取初始文件夹路径
@@ -113,14 +87,14 @@ class CommonTools:
         Returns:
             (状态, 消息)： 三种状态：None：已经是管理员身份；True 以管理员身份重新运行成功；False 以管理员身份重新运行失败
         """
-        if CommonTools.checkAdmin():
+        if Common.checkAdmin():
             return None, '已经是管理员'
         
         try:
             if constants.Status.packaged:
-                params = CommonTools.quotingArgs(sys.argv[1:])
+                params = Common.quotingArgs(sys.argv[1:])
             else:
-                params = CommonTools.quotingArgs(sys.argv)
+                params = Common.quotingArgs(sys.argv)
             result = ctypes.windll.shell32.ShellExecuteW(None, "runas", constants.Path.executableFilePath, params, None, 1)
             if result > 32:
                 return True, '以管理员运行成功'
@@ -129,10 +103,10 @@ class CommonTools:
                     case 5:
                         error = '访问被拒绝'
                     case _:
-                        error = ''
-                return False, f'以管理员身份运行失败，错误代码：{result} {error}'
+                        error = '未知原因'
+                return False, f'{result} {error}'
         except Exception as e:
-            return False, f'以管理员身份运行时发生错误：{e}'
+            return False, f'{str(e)}'
 
     @staticmethod
     def setFileReadOnly(filePath: str, readonly: bool = True):
