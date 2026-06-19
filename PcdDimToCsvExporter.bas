@@ -29,6 +29,8 @@ Sub Main
     fields(4) = part.GetVariableValue("SN").StringValue
     If fields(4) <> "0" Then
         part.SerialNumber = fields(4)
+    Else
+        fields(4) = ""
     End If
     fields(5) = CStr(part.PartProgramSettings.MinusTolerancesShowNegative)
 
