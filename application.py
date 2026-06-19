@@ -1,15 +1,24 @@
+"""
+file: application.py
+description: 应用程序入口
+author: IYATT-yx
+copyright:  Copyright (c) 2025-2026 IYATT-yx.
+            Licensed under the MIT License. See LICENSE file in the project root for full license information.
+"""
 from pcdmistools import PcdmisTools
-from commontools import CommonTools
-from dialog import Dialog
+from customargparse import CustomArgParse
 import constants
-from customexception import CustomException
+from common import Common
+from customargparse import CustomArgParse
+import dataprocessor
 
+import argparse
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 import os
-
-Dialog()
+import sys
 
 class MainUI(tk.Frame):
     def __init__(self, master: tk.Tk=None):
@@ -51,13 +60,13 @@ class MainUI(tk.Frame):
         """
         # 文件选项单选按钮
         self.fileOption = tk.IntVar()
-        tk.Radiobutton(tabFrame, text='指定目录', variable=self.fileOption, value=MainUI.FileOptions.DIRECTORY, command=self.onFileOptionRadiobutton) \
+        tk.Radiobutton(tabFrame, text='指定目录', variable=self.fileOption, value=MainUI.FileOptions.DIRECTORY, command=self.onFileOptionRadiobutton, state=tk.DISABLED) \
         .grid(column=0, row=0, sticky=tk.W)
-        tk.Radiobutton(tabFrame, text='运行时指定目录', variable=self.fileOption, value=MainUI.FileOptions.SPECIFYDIRECTORYATRUNTIME, command=self.onFileOptionRadiobutton) \
+        tk.Radiobutton(tabFrame, text='运行时指定目录', variable=self.fileOption, value=MainUI.FileOptions.SPECIFYDIRECTORYATRUNTIME, command=self.onFileOptionRadiobutton, state=tk.DISABLED) \
         .grid(column=0, row=1, sticky=tk.W)
-        tk.Radiobutton(tabFrame, text='指定文件', variable=self.fileOption, value=MainUI.FileOptions.FILE, command=self.onFileOptionRadiobutton) \
+        tk.Radiobutton(tabFrame, text='指定文件', variable=self.fileOption, value=MainUI.FileOptions.FILE, command=self.onFileOptionRadiobutton, state=tk.DISABLED) \
         .grid(column=0, row=2, sticky=tk.W)
-        tk.Radiobutton(tabFrame, text='运行时指定文件', variable=self.fileOption, value=MainUI.FileOptions.SPECIFYFILEATRUNTIME, command=self.onFileOptionRadiobutton) \
+        tk.Radiobutton(tabFrame, text='运行时指定文件', variable=self.fileOption, value=MainUI.FileOptions.SPECIFYFILEATRUNTIME, command=self.onFileOptionRadiobutton, state=tk.DISABLED) \
         .grid(column=0, row=3, sticky=tk.W)
         tk.Radiobutton(tabFrame, text='不指定', variable=self.fileOption, value=MainUI.FileOptions.NOSPECIFIED, command=self.onFileOptionRadiobutton) \
         .grid(column=0, row=4, sticky=tk.W)
@@ -70,23 +79,23 @@ class MainUI(tk.Frame):
         # 目录和文件输入框
         self.directoryEntryValue = tk.StringVar()
         self.fileEntryValue = tk.StringVar()
-        tk.Entry(tabFrame, textvariable=self.directoryEntryValue, width=80) \
+        tk.Entry(tabFrame, textvariable=self.directoryEntryValue, width=80, state=tk.DISABLED) \
         .grid(column=1, row=0, sticky=tk.NSEW)
-        self.fileEntry = tk.Entry(tabFrame, textvariable=self.fileEntryValue, width=80) \
+        self.fileEntry = tk.Entry(tabFrame, textvariable=self.fileEntryValue, width=80, state=tk.DISABLED) \
         .grid(column=1, row=2, sticky=tk.NSEW)
 
         # 操作按钮
-        tk.Button(tabFrame, text='浏览文件夹', command=self.onBrowseFolderButton) \
+        tk.Button(tabFrame, text='浏览文件夹', command=self.onBrowseFolderButton, state=tk.DISABLED) \
         .grid(column=2, row=0, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='浏览文件', command=self.onBrowseFileButton) \
+        tk.Button(tabFrame, text='浏览文件', command=self.onBrowseFileButton, state=tk.DISABLED) \
         .grid(column=2, row=2, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='复制命令到剪切板', command=self.onCopyButton) \
+        tk.Button(tabFrame, text='复制命令', command=self.onCopyButton) \
         .grid(column=0, row=8, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='删除程序中的命令', command=self.onDelCmd) \
+        tk.Button(tabFrame, text='移除工具', command=self.onDelCmd) \
         .grid(column=0, row=9, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='添加命令到程序中', command=self.onAddCmd) \
+        tk.Button(tabFrame, text='添加工具', command=self.onAddCmd) \
         .grid(column=0, row=10, sticky=tk.NSEW)
-        tk.Button(tabFrame, text='保存测量程序', command=self.onSaveProg) \
+        tk.Button(tabFrame, text='保存程序', command=lambda: PcdmisTools.connectPcDmis(True)) \
         .grid(column=0, row=11, sticky=tk.NSEW)
 
         # 分隔线
@@ -97,20 +106,12 @@ class MainUI(tk.Frame):
         self.cmdText = tk.Text(tabFrame, height=5, state='disabled')
         self.cmdText.grid(column=1, row=8, columnspan=2, rowspan=4, sticky=tk.NSEW)
     
-    def onSaveProg(self):
-        """
-        保存测量程序按钮事件回调
-        """
-        PcdmisTools.connect(False)
-        PcdmisTools.saveProg()
-
     def onDelCmd(self):
         """
         删除命令按钮事件回调
         """
-        PcdmisTools.connect(False)
-        PcdmisTools.removeExternalCommand()
-        Dialog.log('已删除所有调用本工具的外部命令，若未刷新，点击PC-DMIS编辑窗口即可刷新', Dialog.INFO)
+        PcdmisTools.connectPcDmis()
+        PcdmisTools.removeCommand()
         
 
     def afterCreateUserInterface(self):
@@ -130,15 +131,14 @@ class MainUI(tk.Frame):
         浏览文件夹按钮事件回调
         """
         directory = filedialog.askdirectory(
-            initialdir=CommonTools.getInitFolder(),
+            initialdir=Common.getInitFolder(),
             title='选择导出目录',
             mustexist=True
         )
         if directory == '':
-            Dialog.log('取消选择文件夹', Dialog.INFO)
             return
         directory = os.path.normpath(directory)
-        CommonTools.setInitFolder(directory)
+        Common.setInitFolder(directory)
         self.directoryEntryValue.set(directory)
 
     def onBrowseFileButton(self):
@@ -146,15 +146,14 @@ class MainUI(tk.Frame):
         浏览文件按钮事件回调
         """
         file = filedialog.askopenfilename(
-            initialdir=CommonTools.getInitFileDir(),
+            initialdir=Common.getInitFileDir(),
             title='选择导出文件',
             filetypes=[('Excel 工作簿', '*.xlsx')]
         )
         if file == '':
-            Dialog.log('取消选择文件', Dialog.INFO)
             return
         file = os.path.normpath(file)
-        CommonTools.setInitFileDir(file)
+        Common.setInitFileDir(file)
         self.fileEntryValue.set(file)
 
     def onFolderEntryChange(self, *args):
@@ -230,15 +229,15 @@ class MainUI(tk.Frame):
             case MainUI.FileOptions.NOSPECIFIED:
                 self.writeCmdText('-n')
             case _:
-                raise CustomException('未知选项', CustomException.CRITICAL)
+                raise RuntimeError('未知选项')
 
     def onAddCmd(self):
         """
         向 PC-DMIS 中添加外部命令
         """
-        PcdmisTools.connect(False)
-        exePath = self.cmdText.get('1.0', 'end').strip()
-        PcdmisTools.addExternalCommand(exePath)
+        PcdmisTools.connectPcDmis()
+        commandString = self.cmdText.get('1.0', 'end').strip()
+        PcdmisTools.addBasicAndExternalCommand(commandString)
 
     def aboutTabUI(self, tabFrame: ttk.Frame):
         """
@@ -249,13 +248,62 @@ class MainUI(tk.Frame):
         text.insert('end', constants.Basic.description)
         text.config(state='disabled')
 
-def test1():
-    """
-    基本功能测试
-    """
-    root = tk.Tk()
-    mui = MainUI(root)
-    root.mainloop()
+class Application:
+    @staticmethod
+    def argumentParser() -> argparse.Namespace:
+        """
+        参数解析
 
-if __name__ == '__main__':
-    test1()
+        Returns:
+            argparse.Namespace: 参数解析器
+        """
+        parser = CustomArgParse(description='PC-DMIS 数据导出工具')
+        fileGroup = parser.add_mutually_exclusive_group(required=True)
+        fileGroup.add_argument('-d', '--directory', type=str, help='指定导出目录')
+        fileGroup.add_argument('-dr', '--specifydirectoryatruntime', action='store_true', help='运行时指定导出目录')
+        fileGroup.add_argument('-f', '--file', type=str, help='指定导出文件')
+        fileGroup.add_argument('-fr', '--specifyfileatruntime', action='store_true', help='运行时指定导出文件')
+        fileGroup.add_argument('-n', '--nospecified', action='store_true', help='不指定导出文件或目录')
+
+        parser.add_argument('--no-prog', action='store_true', help='不保存测量程序文件')
+        return parser.parse_args()
+    
+    @staticmethod
+    def cmdMode():
+        args = Application.argumentParser()
+        dataprocessor.convertPcdCsvToExcel(noProg=args.no_prog)
+
+    @staticmethod
+    def uiMode():
+        master = tk.Tk()
+        master.attributes('-topmost', True)
+
+        master.title(constants.Basic.projectName)
+
+        width = 756
+        height = 370
+        defaultX = int((master.winfo_screenwidth() - width) / 2)
+        defaultY = int((master.winfo_screenheight() - height) / 2)
+        master.geometry(f'{width}x{height}+{defaultX}+{defaultY}')
+        master.resizable(False, False)
+
+        master.iconbitmap(constants.Basic.logoPath)
+
+        MainUI(master)
+        master.mainloop()
+
+    @staticmethod
+    def run():
+        try:
+            status, error = Common.runAsAdmin()
+            if status is None:
+                if len(sys.argv) > 1:
+                    Application.cmdMode()
+                else:
+                    Application.uiMode()
+            elif status:
+                return
+            else:
+                raise RuntimeError(f'以管理员身份运行失败，错误消息：{error}')
+        except Exception as e:
+            messagebox.showerror(f'{constants.Basic.projectName} - 顶层错误消息', str(e))
