@@ -9,7 +9,6 @@ from pcdmistools import PcdmisTools
 from customargparse import CustomArgParse
 import constants
 from common import Common
-from customargparse import CustomArgParse
 import dataprocessor
 
 import argparse
