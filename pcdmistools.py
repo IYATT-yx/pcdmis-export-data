@@ -1,508 +1,89 @@
 """
-PC-DMIS 版本:
-                    2018 R1
-                    2019 R2
-                    2023.2
-                    
+file: pcdmistools.py
+description: PC-DMIS 工具类。连接 PC-DMIS、插入 BASIC 脚本和外部命令
+author: IYATT-yx
+copyright:  Copyright (c) 2025-2026 IYATT-yx.
+            Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
-from customexception import CustomException
-from dialog import Dialog
+from pdconst import constants as pdconst
 import constants
-from topmessagebox import TopMessagebox
-from pcdlrnconst.pcdlrnconst20232 import constants as pdconst
+import os
 
 import win32com.client as wc
-import hashlib
-# import re
-# import importlib
-import os
-from types import MethodType
-from enum import Enum, auto
 import pywintypes
-
-Dialog()
+from tkinter import messagebox
 
 class PcdmisTools:
-    app = None
-    part = None
     cmds = None
-    showNegative: bool = None
-    # pdconst = None
-    pivotVersion = '2022'
-    getFcfFromCmd: MethodType = None
-
-    # @staticmethod
-    # def importPcdlrnConst(version: str):
-    #     packageName = 'pcdlrnconst'
-    #     moduleName = packageName + '.' + packageName + re.sub(r'[ .]', '', version)
-    #     try:
-    #         PcdmisTools.pdconst = importlib.import_module(moduleName, packageName).constants
-    #     except ModuleNotFoundError:
-    #         raise ValueError(f'未找到 {version} 版本的模块')
-
-    # 报告 AXIS（轴）映射值
-    axisMap = {
-        'X': 'X坐标',
-        'Y': 'Y坐标',
-        'Z': 'Z坐标',
-        'TP': '位置度',
-        'DF': '特征直径',
-        'D': '直径',
-        'A': '角度',
-        'M': '综合评价',
-        'R': '半径',
-        'L': '长度',
-        'H': '高度',
-        'V': '矢量',
-        'RT': '报告逼近矢量方向偏差',
-        'S': '曲面矢量方向偏差',
-        'RS': '曲面报告矢量方向偏差',
-        'PD': '销直径',
-        'T': '理论值'
-    }
 
     @staticmethod
-    def getAxisName(axisSymbol: str) -> str:
-        """
-        根据轴符号获取名称
-
-        Args:
-            axisSymbol(str): 轴符号
-
-        Returns:
-            str: 轴名称
-        """
-        if not isinstance(axisSymbol, str):
-            axisSymbol = str(axisSymbol)
-        return PcdmisTools.axisMap.get(axisSymbol, axisSymbol)
-        
-    @staticmethod
-    def initPcdlrnTools(version: str):
-        if version >= PcdmisTools.pivotVersion:
-            # PcdmisTools.importPcdlrnConst('2023.2')
-            PcdmisTools.getFcfFromCmd = PcdmisTools.getFcfFromCmd20232
-        else:
-            # PcdmisTools.importPcdlrnConst('2019 R2')
-            PcdmisTools.getFcfFromCmd = PcdmisTools.getFcfFromCmd2019R2
-
-    @staticmethod
-    def connect(online: bool = True) -> tuple[str, str]:
+    def connectPcDmis(save: bool = False):
         """
         连接 PC-DMIS
 
         Args:
-            online (bool): 是否连接联机程序，否则连接前台程序
-
-        Returns:
-            (PC-DMIS 版本, 当前程序名称, 程序完整路径)
+            save (bool, optional): 是否保存测量程序. Defaults to False.
         """
-        if PcdmisTools.app is not None:
-            Dialog.log('PC-DMIS 已经连接')
-        else:
-            try:
-                PcdmisTools.app = wc.Dispatch('PCDLRN.Application')
-            except pywintypes.com_error as e:
-                if e.hresult == -2147221021 or e.hresult == -2146959355:
-                    msg = '请确保PC-DMIS已经以管理员身份运行'
-                    TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
-                    raise CustomException(msg, CustomException.ERROR)
-                else:
-                    raise CustomException('连接 PC-DMIS 失败', CustomException.ERROR)
-            Dialog.log(f'连接 PC-DMIS 成功，版本：{PcdmisTools.app.VersionString}')
-
-        PcdmisTools.part = None
-        count = 1
-        programString = ''
-        # 获取所有测量程序
-        parts = PcdmisTools.app.PartPrograms
-
-        if online:
-            for part in parts:
-                programName = part.Name
-                machine = part.ActiveMachine
-                status = machine.ConnectionStatus
-                programString += f'({count}) 测量程序名：{programName}，设备：{machine}，连接状态：'
-                match status:
-                    case pdconst.NotAvailable:
-                        programString += '不可用'
-                    case pdconst.MachineNotConnected:
-                        programString += '未连接'
-                    case pdconst.MachineHoming:
-                        programString += '正在回零'
-                    case pdconst.MachineDisconnecting:
-                        programString += '正在断开连接'
-                    case pdconst.MachineConnecting:
-                        programString += '正在连接'
-                    case pdconst.MachineConnected:
-                        PcdmisTools.part = part
-                        programString += '已连接'
-                programString += '；'
-                count += 1
-            Dialog.log(f'已打开程序数：{parts.Count}，程序状态：{programString}')
-
-        if PcdmisTools.part is None:
-            Dialog.log('尝试获取当前前台的程序')
-            PcdmisTools.part = PcdmisTools.app.ActivePartProgram
-        
-        if PcdmisTools.part is None:
-            raise CustomException('获取程序失败', CustomException.CRITICAL)
-        else:
-            Dialog.log(f'连接 PC-DMIS 程序成功，程序名：{PcdmisTools.part.Name}')
-            PcdmisTools.initPcdlrnTools(PcdmisTools.app.VersionString)
-            PcdmisTools.showNegative = PcdmisTools.part.PartProgramSettings.MinusTolerancesShowNegative
-        PcdmisTools.cmds = PcdmisTools.part.Commands
-
-        return PcdmisTools.app.VersionString, PcdmisTools.part.Name, PcdmisTools.part.FullName
-    
-    dataTemplate = {
-        '标识符': None,
-        '相关特征': None,
-        '轴': None,
-        '单位': None,
-        '理论值': None,
-        '上极限偏差': None,
-        '下极限偏差': None,
-        '规格上限': None,
-        '规格下限': None,
-        '实测值': None,
-        '实体补偿': None,
-        '类型': None
-    }
-
-    class dataType(Enum):
-        DIMENSION = auto()
-        FCF = auto()
-        FCFDIM = auto()
-
-    dataKeys = list(dataTemplate.keys())
-    dataLen = len(dataKeys)
-
-    @staticmethod
-    def getDimensionFromCmd(idx, cmd, precision) -> list[dict]:
-        """
-        从测量命令对象中获取尺寸数据
-
-        Params:
-            cmd: 测量命令对象
-            precision: 浮点数精度
-
-        Returns:
-            list[dict]
-        """
-        if not cmd.isDimension:
-            return None, idx
-
-        dim = cmd.DimensionCommand
-        if dim is None:
-            Dialog.log('获取尺寸对象失败', Dialog.WARNING)
-            return None, idx
-        
-        data = PcdmisTools.dataTemplate.copy()
-        datas = []
-        getFieldValue = cmd.GetFieldValue
-        measured = getFieldValue(pdconst.DIM_MEASURED, 0)
-        if measured != False: # 排除形位公差和基准
-            data['标识符'] = dim.ID
-            data['相关特征'] = dim.Feat1 + ' ' + dim.Feat2 + ' ' + dim.Feat3
-            data['单位'] = getFieldValue(pdconst.UNIT_TYPE, 0)
-            if getFieldValue(pdconst.AXIS, 0) == False and PcdmisTools.cmds[idx + 1].ID == '': # 这是一个位置命令，继续下一条命令
-                idx += 1
-                cmd = PcdmisTools.cmds[idx]
-                dim = cmd.DimensionCommand
-
-            nominal = dim.NOMINAL
-            plus = dim.Plus
-            minus = dim.Minus
-
-            data['轴'] = PcdmisTools.getAxisName(dim.AxisLetter)
-            data['理论值'] = round(nominal, precision)
-            data['上极限偏差'] = round(plus, precision)
-            data['下极限偏差'] = -round(minus, precision) # 下极限偏差默认正数表示负数，用负数表示正数
-            data['规格上限'] = round(nominal + plus, precision)
-            data['规格下限'] = round(nominal - minus, precision)
-            data['实测值'] = round(dim.Measured, precision)
-            data['实体补偿'] = round(dim.Bonus, precision)
-            data['类型'] = PcdmisTools.dataType.DIMENSION
-
-            datas.append(data)
-        return datas, idx
-    
-    @staticmethod
-    def getFcfFromCmd2019R2(idx, cmd, precision) -> list[dict]:
-        """
-        从测量命令对象中获取形位公差数据
-
-        Params:
-            cmd: 测量命令对象
-            precision: 浮点数精度
-
-        Returns:
-            list[dict]
-        """
-        if not cmd.isFCFCommand:
-            return None, idx
-        
-        datas = []
-        getFieldValue = cmd.GetFieldValue
-        showNegative = PcdmisTools.showNegative
-        FCFDIM = PcdmisTools.dataType.FCFDIM
-
-        # 形位公差评价对象自身的尺寸信息
-        for i in range(1, cmd.GetDataTypeCount(pdconst.LINE1_MEAS) + 1):
-            data = PcdmisTools.dataTemplate.copy()
-            data['单位'] = getFieldValue(pdconst.UNIT_TYPE, 0)
-            data['标识符'] = getFieldValue(pdconst.LINE1_TBLHDR, i)
-            data['相关特征'] = getFieldValue(pdconst.LINE1_FEATNAME, i)
-            data['轴'] = None
-
-            nominal = getFieldValue(pdconst.LINE1_NOMINAL, i)
-            data['理论值'] = round(nominal, precision)
-            plus = getFieldValue(pdconst.LINE1_PLUSTOL, i)
-            data['上极限偏差'] = round(plus, precision)
-            minustol = getFieldValue(pdconst.LINE1_MINUSTOL, i)
-            if not showNegative:
-                minustol = -minustol
-            data['下极限偏差'] = round(minustol, precision)
-            data['规格上限'] = round(nominal + plus, precision)
-            data['规格下限'] = round(nominal + minustol, precision)
-            meas = getFieldValue(pdconst.LINE1_MEAS, i)
-            data['实测值'] = round(meas, precision)
-            bonus = getFieldValue(pdconst.LINE1_BONUS, i)
-            data['实体补偿'] = round(bonus, precision)
-            data['类型'] = FCFDIM
-
-            datas.append(data)
-
-        # 形位公差
-        for i in range(1, cmd.GetDataTypeCount(pdconst.LINE2_MEAS) + 1):
-            data = PcdmisTools.dataTemplate.copy()
-            data['单位'] = getFieldValue(pdconst.UNIT_TYPE, 0)
-
-            runoutType = getFieldValue(pdconst.FCF_RUNOUT_TYPE, i)
-            if runoutType == False:
-                runoutType = ''
+        try:
+            app = wc.Dispatch('PCDLRN.Application')
+        except pywintypes.com_error as e:
+            if e.hresult == -2147221021 or e.hresult == -2146959355:
+                raise RuntimeError('请确保PC-DMIS已经以管理员身份运行')
             else:
-                runoutType = ' - ' + runoutType
-
-            data['标识符'] = getFieldValue(pdconst.LINE2_TBLHDR, i) + runoutType
-            data['相关特征'] = getFieldValue(pdconst.LINE2_FEATNAME, i)
-            data['轴'] = PcdmisTools.getAxisName(getFieldValue(pdconst.LINE2_AXIS, i))
-
-            nominal = getFieldValue(pdconst.LINE2_NOMINAL, i)
-            data['理论值'] = round(nominal, precision)
-            plus = getFieldValue(pdconst.LINE2_PLUSTOL, i)
-            data['上极限偏差'] = round(plus, precision)
-            minustol = getFieldValue(pdconst.LINE2_MINUSTOL, i)
-            data['规格上限'] = data['上极限偏差']
-            meas = getFieldValue(pdconst.LINE2_MEAS, i)
-            data['实测值'] = round(meas, precision)
-            bonus = getFieldValue(pdconst.LINE2_BONUS, i)
-            data['实体补偿'] = round(bonus, precision)
-            data['类型'] = PcdmisTools.dataType.FCF
-
-            datas.append(data)
-
-        return datas, idx
-
-    @staticmethod
-    def getFcfFromCmd20232(idx, cmd, precision) -> list[dict]:
-        """
-        从测量命令对象中获取形位公差数据
-
-        Params:
-            cmd: 测量命令对象
-            precision: 浮点数精度
-
-        Returns:
-            list[dict]
-        """
-        if not cmd.IsToleranceCommand:
-            return None, idx
-        tolCmd = cmd.ToleranceCommand
-
-        datas = []
-
-        id = tolCmd.ID
-        sizeText = tolCmd.SizeText
-        sizeAxis = tolCmd.SizeAxis
-        reportUnits = tolCmd.ReportUnits
-        sizeNominal = tolCmd.SizeNominal
-        sizePlusTol = tolCmd.SizePlusTol
-        sizeMinusTol = tolCmd.SizeMinusTol
-        sizeMeasured = tolCmd.SizeMeasured
-
-        # 形位公差评价对象自身的尺寸信息
-        for i in range(1, tolCmd.sizeCountCombined + 1):
-            data = PcdmisTools.dataTemplate.copy()
-            data['标识符'] = id + ' 尺寸'
-            data['相关特征'] = sizeText(i)
-            data['轴'] = PcdmisTools.getAxisName(sizeAxis(i))
-            data['单位'] = reportUnits
-            data['理论值'] = round(sizeNominal(i), precision)
-            data['上极限偏差'] = round(sizePlusTol(i), precision)
-            if not PcdmisTools.showNegative:
-                sizeMinusTolValue = -sizeMinusTol(i)
-            else:
-                sizeMinusTolValue = sizeMinusTol(i)
-            data['下极限偏差'] = round(sizeMinusTolValue, precision)
-            data['规格上限'] = round(sizeNominal(i) + sizePlusTol(i), precision)
-            data['规格下限'] = round(sizeNominal(i) + sizeMinusTolValue, precision)
-
-            data['实测值'] = round(sizeMeasured(i), precision)
-            data['类型'] = PcdmisTools.dataType.FCFDIM
-
-            datas.append(data)
-
-        id = tolCmd.ID
-        featureID = tolCmd.FeatureID
-        segmentAxis = tolCmd.SegmentAxis
-        segmentDimNominal = tolCmd.SegmentDimNominal
-        segmentDimPlusTol = tolCmd.SegmentDimPlusTol
-        segmentDimMeasured = tolCmd.SegmentDimMeasured
-        segmentDimBonus = tolCmd.SegmentDimBonus
-
-        # 形位公差
-        for i in range(1, tolCmd.SegmentCount + 1):
-            for j in range(1, tolCmd.FeatureCount + 1):
-                data = PcdmisTools.dataTemplate.copy()
-                data['标识符'] = id
-                data['相关特征'] = featureID(j)
-                data['轴'] = PcdmisTools.getAxisName(segmentAxis(j))
-                data['单位'] = tolCmd.ReportUnits
-                data['理论值'] = round(segmentDimNominal(i, j), precision)
-                data['上极限偏差'] = round(segmentDimPlusTol(i, j), precision)
-                data['规格上限'] = data['上极限偏差']
-                data['实测值'] = round(segmentDimMeasured(i, j), precision)
-                data['实体补偿'] = round(segmentDimBonus(i, j), precision)
-                data['类型'] = PcdmisTools.dataType.FCF
-
-                datas.append(data)
-
-        return datas, idx
-
-    @staticmethod
-    def getData() -> tuple[str, list[dict]]:
-        """
-        获取尺寸和形位公差数据
-
-        Returns:
-            (序列号, list[dict])
-        """
-        if PcdmisTools.cmds is None:
-            raise CustomException('请先连接 PC-DMIS 程序后，再获取数据', CustomException.WARNING)
-        
-        dataList = []
-        idx = 0
-        numberOfCmds: int = PcdmisTools.cmds.Count
-        while idx < numberOfCmds:
-            cmd = PcdmisTools.cmds[idx]
-            dimensionData, idx = PcdmisTools.getDimensionFromCmd(idx, cmd, constants.Data.precision)
-            if dimensionData is not None:
-                dataList += dimensionData
-            fcfDatas, idx = PcdmisTools.getFcfFromCmd(idx, cmd, constants.Data.precision)
-            if fcfDatas is not None:
-                dataList += fcfDatas
-            idx += 1
-
-        # 如果测量程序中赋值了 SN 变量，则优先将这个变量的值作为序列号
-        SERIALNUMBER_var = PcdmisTools.part.GetVariableValue('SN').StringValue
-        if SERIALNUMBER_var:
-            serialNumber = SERIALNUMBER_var
-        else:
-            serialNumber = PcdmisTools.part.SerialNumber
-
-        return serialNumber, dataList
+                raise RuntimeError(f'连接 PC-DMIS 失败：{str(e)}')
+        part = app.ActivePartProgram
+        PcdmisTools.cmds = part.Commands
+        if save:
+            part.Save
     
-    def modifySerialNumber(sn: str):
+    @staticmethod
+    def addBasicAndExternalCommand(commandString: str):
         """
-        修改序列号
+        将本工具插入到测量程序末尾
 
         Args:
-            sn(str): 序列号
-        """
-        PcdmisTools.part.SerialNumber = sn
-        PcdmisTools.part.ReportWindow.RefreshReport
-    
-    @staticmethod
-    def calcDigest(dataList: list[dict]) -> str:
-        if not dataList:
-            raise CustomException('数据为空', CustomException.ERROR)
-            
-        exclude_keys = {'规格上限', '规格下限', '实体补偿', '实测值'} # 确保是 set
-        
-        summaryString = ''.join(
-            str(value)
-            for data in dataList
-            for key, value in data.items()
-            if key not in exclude_keys
-        )
-        
-        return hashlib.sha256(summaryString.encode('utf-8')).hexdigest()
-    
-    @staticmethod
-    def removeExternalCommand():
-        """
-        移除使用本工具的外部命令
+            commandString (str): 外部命令字符串
         """
         if PcdmisTools.cmds is None:
-            Dialog.log('请先连接 PC-DMIS 程序后，再使用移除命令', Dialog.WARNING)
-            return
-        idx = PcdmisTools.cmds.Count - 1
-        while idx > 0 :
-            cmd = PcdmisTools.cmds[idx]
-            if cmd.IsExternalCommand:
-                extCmdStr = cmd.GetFieldValue(pdconst.COMMAND_STRING, 0)
-                if 'pcdmis-export-data' in extCmdStr:
-                    cmd.Remove()
-                    Dialog.log(f'删除外部命令：{extCmdStr}')
-            idx -= 1
-
-    @staticmethod
-    def addExternalCommand(exePath: str):
-        """
-        添加外部命令
-
-        Params:
-            exePath: 外部命令的路径
-        """
-        if PcdmisTools.cmds is None:
-            Dialog.log('请先连接 PC-DMIS 程序后，再添加命令', Dialog.WARNING)
+            messagebox.showerror('错误', '未连接 PC-DMIS')
             return
         
-        # 获取最后一条命令
-        cmdNumber = PcdmisTools.cmds.Count
-        endCmd = PcdmisTools.cmds[cmdNumber - 1]
-
-        # 将插入点设置到最后一条命令之后
+        endCmd = PcdmisTools.cmds. LastCommand
         PcdmisTools.cmds.InsertionPointAfter(endCmd)
 
+        basicPath = os.path.join(constants.Path.programFileDir, 'PcdDimToCsvExporter.bas')
+        cmd = PcdmisTools.cmds.Add(pdconst.BASIC_SCRIPT, True)
+        cmd.PutText(basicPath, pdconst.FILE_NAME, 0)
+        cmd.PutText('是', pdconst.SHOW_DETAILS, 0)
+        cmd.PutText('Main', pdconst.SUB_NAME, 0)
+        cmd.Marked = True 
+
         cmd = PcdmisTools.cmds.Add(pdconst.EXTERNAL_COMMAND, True)
-        cmd.PutText(exePath, pdconst.COMMAND_STRING, 0)
+        cmd.PutText(commandString, pdconst.COMMAND_STRING, 0)
         cmd.PutText('不显示', pdconst.DISPLAY_TRACE, 0)
         cmd.PutText('等待', pdconst.TRACE_NAME, 0)
 
-        Dialog.log(f'添加外部命令：{exePath}')
-
-    def getCurProgPath():
+    @staticmethod
+    def removeCommand():
         """
-        获取当前测量程序的绝对路径
+        采用倒序遍历方式移除命令，彻底规避塌陷引起的索引错乱
         """
-        return PcdmisTools.part.FullName
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
 
-    def saveProg():
-        """
-        保存测量程序
+        for idx in range(PcdmisTools.cmds.Count - 1, -1, -1):
+            cmd = PcdmisTools.cmds[idx]
+            if cmd is None:
+                continue
 
-        Returns:
-            保存成功返回 True，否则返回 False
-        """
-        if PcdmisTools.part is None:
-            raise CustomException('请先连接 PC-DMIS 程序后，再保存程序', CustomException.WARNING)
-
-        if PcdmisTools.part.Save:
-            Dialog.log(f'保存测量程序成功：{PcdmisTools.getCurProgPath()}')
-            return True
-        else:
-            Dialog.log(f'保存测量程序失败：{PcdmisTools.getCurProgPath()}')
-            return False
-        
+            if cmd.Type == pdconst.BASIC_SCRIPT:
+                basicFileName = cmd.GetFieldValue(pdconst.FILE_NAME, 0)
+                if 'PcdDimToCsvExporter'.upper() in basicFileName.upper():
+                    cmd.Remove()
+            elif cmd.Type == pdconst.END_SCRIPT:
+                cmd.Remove()
+            elif cmd.Type == pdconst.EXTERNAL_COMMAND:
+                extCmdStr = cmd.GetFieldValue(pdconst.COMMAND_STRING, 0)
+                if 'pcdmis-export-data'.upper() in extCmdStr.upper():
+                    cmd.Remove()
