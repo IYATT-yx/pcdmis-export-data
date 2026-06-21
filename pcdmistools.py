@@ -5,7 +5,8 @@ author: IYATT-yx
 copyright:  Copyright (c) 2025-2026 IYATT-yx.
             Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
-from pdconst import constants as pdconst
+from obtype import Obtype
+from enumfieldtypes import EnumFieldTypes
 import constants
 import os
 
@@ -52,16 +53,16 @@ class PcdmisTools:
         PcdmisTools.cmds.InsertionPointAfter(endCmd)
 
         basicPath = os.path.join(constants.Path.programFileDir, 'PcdDimToCsvExporter.bas')
-        cmd = PcdmisTools.cmds.Add(pdconst.BASIC_SCRIPT, True)
-        cmd.PutText(basicPath, pdconst.FILE_NAME, 0)
-        cmd.PutText('是', pdconst.SHOW_DETAILS, 0)
-        cmd.PutText('Main', pdconst.SUB_NAME, 0)
+        cmd = PcdmisTools.cmds.Add(Obtype.BASIC_SCRIPT, True)
+        cmd.PutText(basicPath, EnumFieldTypes.FILE_NAME, 0)
+        cmd.PutText('是', EnumFieldTypes.SHOW_DETAILS, 0)
+        cmd.PutText('Main', EnumFieldTypes.SUB_NAME, 0)
         cmd.Marked = True 
 
-        cmd = PcdmisTools.cmds.Add(pdconst.EXTERNAL_COMMAND, True)
-        cmd.PutText(commandString, pdconst.COMMAND_STRING, 0)
-        cmd.PutText('不显示', pdconst.DISPLAY_TRACE, 0)
-        cmd.PutText('等待', pdconst.TRACE_NAME, 0)
+        cmd = PcdmisTools.cmds.Add(Obtype.EXTERNAL_COMMAND, True)
+        cmd.PutText(commandString, EnumFieldTypes.COMMAND_STRING, 0)
+        cmd.PutText('不显示', EnumFieldTypes.DISPLAY_TRACE, 0)
+        cmd.PutText('等待', EnumFieldTypes.TRACE_NAME, 0)
 
     @staticmethod
     def removeCommand():
@@ -77,13 +78,13 @@ class PcdmisTools:
             if cmd is None:
                 continue
 
-            if cmd.Type == pdconst.BASIC_SCRIPT:
-                basicFileName = cmd.GetFieldValue(pdconst.FILE_NAME, 0)
+            if cmd.Type == Obtype.BASIC_SCRIPT:
+                basicFileName = cmd.GetFieldValue(EnumFieldTypes.FILE_NAME, 0)
                 if 'PcdDimToCsvExporter'.upper() in basicFileName.upper():
                     cmd.Remove()
-            elif cmd.Type == pdconst.END_SCRIPT:
+            elif cmd.Type == Obtype.END_SCRIPT:
                 cmd.Remove()
-            elif cmd.Type == pdconst.EXTERNAL_COMMAND:
-                extCmdStr = cmd.GetFieldValue(pdconst.COMMAND_STRING, 0)
+            elif cmd.Type == Obtype.EXTERNAL_COMMAND:
+                extCmdStr = cmd.GetFieldValue(EnumFieldTypes.COMMAND_STRING, 0)
                 if 'pcdmis-export-data'.upper() in extCmdStr.upper():
                     cmd.Remove()
