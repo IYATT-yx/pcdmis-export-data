@@ -18,6 +18,8 @@ from tkinter import filedialog
 from tkinter import messagebox
 import os
 import sys
+import logging
+import traceback
 
 class MainUI(tk.Frame):
     def __init__(self, master: tk.Tk=None):
@@ -305,4 +307,14 @@ class Application:
             else:
                 raise RuntimeError(f'以管理员身份运行失败，错误消息：{error}')
         except Exception as e:
+            errorMsg = traceback.format_exc()
+            logging.error(errorMsg)
             messagebox.showerror(f'{constants.Basic.projectName} - 顶层错误消息', str(e))
+
+logging.basicConfig(
+    filename= os.path.join(constants.Path.programFileDir, 'error.log'),
+    level=logging.ERROR,  # 仅记录 ERROR 及以上级别的日志
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
+    encoding='utf-8'
+)
