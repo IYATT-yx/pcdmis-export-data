@@ -199,11 +199,11 @@ def formatDataPrecision(dataList: list, decimalPlaces: int) -> None:
         decimalPlaces (int): 保留的小数位数。
     """
     for row in dataList:
-        row[6] = round(float(row[6]), decimalPlaces)
-        row[7] = round(float(row[7]), decimalPlaces)
-        row[8] = round(float(row[8]), decimalPlaces)
-        row[9] = round(float(row[9]), decimalPlaces)
-        row[10] = round(float(row[10]), decimalPlaces)
+        for i in range(6, 11):
+            val = row[i]
+            if isinstance(val, str) and val.upper() == 'FALSE':
+                val = 0
+            row[i] = round(float(val), decimalPlaces)
 
 # 轴字母映射名称
 # 参考：
