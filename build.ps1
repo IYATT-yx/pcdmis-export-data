@@ -18,6 +18,7 @@ nuitka --standalone `
 --windows-icon-from-ico=.\icon.ico `
 --include-data-file=.\icon.ico=.\ `
 --include-data-file=.\PcdDimToCsvExporter.bas=.\ `
+--include-data-file=.\ForceEnMode\x64\Release\ForceEnMode.exe=.\ `
 --output-dir=dist `
 --output-filename=pcdmis-export-data_win_amd64 `
 .\pcdmis-export-data.py
