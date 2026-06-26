@@ -16,6 +16,7 @@ from tkinter import messagebox
 
 class PcdmisTools:
     cmds = None
+    part = None
 
     @staticmethod
     def connectPcDmis(save: bool = False):
@@ -32,10 +33,10 @@ class PcdmisTools:
                 raise RuntimeError('请确保PC-DMIS已经以管理员身份运行')
             else:
                 raise RuntimeError(f'连接 PC-DMIS 失败：{str(e)}')
-        part = app.ActivePartProgram
-        PcdmisTools.cmds = part.Commands
+        PcdmisTools.part = app.ActivePartProgram
+        PcdmisTools.cmds = PcdmisTools.part.Commands
         if save:
-            part.Save
+            PcdmisTools.part.Save
     
     @staticmethod
     def addBasicAndExternalCommand(commandString: str):
@@ -49,7 +50,7 @@ class PcdmisTools:
             messagebox.showerror('错误', '未连接 PC-DMIS')
             return
         
-        endCmd = PcdmisTools.cmds. LastCommand
+        endCmd = PcdmisTools.cmds.LastCommand
         PcdmisTools.cmds.InsertionPointAfter(endCmd)
 
         basicPath = os.path.join(constants.Path.programFileDir, 'PcdDimToCsvExporter.bas')
@@ -63,6 +64,65 @@ class PcdmisTools:
         cmd.PutText(commandString, EnumFieldTypes.COMMAND_STRING, 0)
         cmd.PutText('不显示', EnumFieldTypes.DISPLAY_TRACE, 0)
         cmd.PutText('等待', EnumFieldTypes.TRACE_NAME, 0)
+
+    pdfPathVarName = 'PDF_FULL_NAME'
+
+    @staticmethod
+    def addPdfPathVar():
+        """
+        添加PDF导出路径变量
+        """
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+        
+        endCmd = PcdmisTools.cmds.LastCommand
+        PcdmisTools.cmds.InsertionPointAfter(endCmd)
+
+        cmd = PcdmisTools.cmds.Add(Obtype.ASSIGNMENT, True)
+        cmd.PutText(PcdmisTools.pdfPathVarName, EnumFieldTypes.DEST_EXPR, 0)
+        cmd.PutText('0', EnumFieldTypes.SRC_EXPR, 0)
+    
+    @staticmethod
+    def setPdfPathVar(newVal: str):
+        if PcdmisTools.part is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+        valueObj = PcdmisTools.part.GetVariableValue(PcdmisTools.pdfPathVarName)
+        valueObj.StringValue = newVal
+        PcdmisTools.part.SetVariableValue(PcdmisTools.pdfPathVarName, valueObj)
+
+    @staticmethod
+    def addPrintReport():
+        """
+        添加打印报告命令
+        """
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+        
+        endCmd = PcdmisTools.cmds.LastCommand
+        PcdmisTools.cmds.InsertionPointAfter(endCmd)
+
+        cmd = PcdmisTools.cmds.Add(Obtype.SET_COMMENT, True)
+        cmd.PutText('文档', EnumFieldTypes.COMMENT_TYPE, 0)
+        cmd.PutText(f'下方打印报告的文件路径已绑定到变量 ==>> {PcdmisTools.pdfPathVarName}', EnumFieldTypes.COMMENT_FIELD, 0)
+
+        cmd = PcdmisTools.cmds.Add(Obtype.PRINT_REPORT, True)
+        cmd.PutText('终止', EnumFieldTypes.MODE_TYPE, 0)
+        cmd.PutText('开', EnumFieldTypes.PRINT_TO_FILE, 0)
+        cmd.PutText('覆盖', EnumFieldTypes.FILE_COMMAND_TYPE, 0)
+        cmd.SetExpression(PcdmisTools.pdfPathVarName, EnumFieldTypes.FILE_NAME, 0)
+        cmd.PutText('PDF', EnumFieldTypes.PRINT_OUTFPUT_FORMAT_TYPE, 0)
+        cmd.PutText('是', EnumFieldTypes.RESET_REPORT, 0)
+        cmd.PutText('开', EnumFieldTypes.ONOFF_TYPE, 0)
+        cmd.PutText('关', EnumFieldTypes.PRINT_TO_PRINTER, 0)
+        cmd.PutText('关', EnumFieldTypes.OUTPUT_DMIS_REPORT, 0)
+        cmd.PutText('索引', EnumFieldTypes.OVERWRITE,0)
+        cmd.PutText('无', EnumFieldTypes.OUTPUT_FEATURE_NOMS, 0)
+        cmd.PutText('否', EnumFieldTypes.OUTPUT_FEAT_W_DIMENS, 0)
+        cmd.PutText('关', EnumFieldTypes.OUTPUT_TO_REPORT, 0)
+        cmd.PutText('删除实例', EnumFieldTypes.PRINT_DELETE_RUNS, 0)
 
     @staticmethod
     def removeCommand():
@@ -88,3 +148,13 @@ class PcdmisTools:
                 extCmdStr = cmd.GetFieldValue(EnumFieldTypes.COMMAND_STRING, 0)
                 if 'pcdmis-export-data'.upper() in extCmdStr.upper():
                     cmd.Remove()
+            elif cmd.Type == Obtype.ASSIGNMENT:
+                dest = cmd.GetFieldValue(EnumFieldTypes.DEST_EXPR, 0)
+                if PcdmisTools.pdfPathVarName in dest:
+                    cmd.Remove()
+            elif cmd.Type == Obtype.SET_COMMENT:
+                comment = cmd.GetFieldValue(EnumFieldTypes.COMMENT_FIELD, 0)
+                if PcdmisTools.pdfPathVarName in comment:
+                    cmd.Remove()
+            elif cmd.Type == Obtype.PRINT_REPORT:
+                cmd.Remove()

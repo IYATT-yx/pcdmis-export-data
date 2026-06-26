@@ -7,6 +7,7 @@ copyright:  Copyright (c) 2026 IYATT-yx.
 """
 from common import Common
 import constants
+from pcdmistools import PcdmisTools
 
 import csv
 import os
@@ -244,7 +245,7 @@ def axisLetterToName(dataList: list) -> None:
         rawAxis = row[4]
         row[4] = axisMap.get(rawAxis, rawAxis)
 
-def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMIS-TEMP.csv', decimalPlaces: int = 4, sheetName: str = '导出数据', noProg: bool = False):
+def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMIS-TEMP.csv', decimalPlaces: int = 4, sheetName: str = '导出数据', noProg: bool = False, exportPdf: bool = False):
     r"""
     将 PC-DMIS 中导出的原始 CSV 文件转换为 Excel 文件。
 
@@ -310,12 +311,22 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
         dataPath = constants.Path.defaultDataPath
     excelDir = os.path.join(dataPath, progNameWithoutExt) # 工具可执行文件目录下的 data 目录下，对应测量程序名目录下
     excelFilename = f'{progNameWithoutExt}({versionString}).xlsx'
+    pdfDir = os.path.join(excelDir, 'PDF')
+    pdfFilename = f'{progNameWithoutExt}({SN})({currentDataTime}).pdf'
     excelFilePath = Common.longPath(os.path.join(excelDir, excelFilename))
+    pdfFilePath = os.path.join(pdfDir, pdfFilename)
     progBackupFilename = f'{progNameWithoutExt}({versionString})({currentDataTime})({SN}).PRG'
     progBackupPath = Common.longPath(os.path.join(excelDir, progBackupFilename))
 
     if not os.path.exists(excelDir):
         os.makedirs(excelDir, exist_ok=True)
+
+    if exportPdf:
+        if not os.path.exists(pdfDir):
+            os.makedirs(pdfDir, exist_ok=True)
+        pd = PcdmisTools()
+        pd.connectPcDmis()
+        pd.setPdfPathVar(pdfFilePath)
 
     # 备份测量程序文件
     if not noProg:

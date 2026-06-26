@@ -74,8 +74,12 @@ class MainUI(tk.Frame):
 
         # 是否保存程序文件选项
         self.isSaveProg = tk.BooleanVar(self, value=True)
-        tk.Checkbutton(tabFrame, text='保存测量程序文件', variable=self.isSaveProg, command=self.onFileOptionRadiobutton) \
+        tk.Checkbutton(tabFrame, text='保存测量程序副本', variable=self.isSaveProg, command=self.onFileOptionRadiobutton) \
         .grid(column=0, row=6, sticky=tk.W)
+        # 是否保存 PDF 报告
+        self.isExportPdf = tk.BooleanVar(self, value=False)
+        tk.Checkbutton(tabFrame, text='保存PDF报告', variable=self.isExportPdf, command=self.onFileOptionRadiobutton) \
+        .grid(column=1, row=6, sticky=tk.W)
 
         # 目录和文件输入框
         self.directoryEntryValue = tk.StringVar()
@@ -209,6 +213,8 @@ class MainUI(tk.Frame):
         self.cmdText.delete('1.0', 'end')
         if not self.isSaveProg.get():
             text += ' --no-prog'
+        if self.isExportPdf.get():
+            text += ' --export-pdf'
         if addExePath:
             text = constants.Path.executableCommand + ' ' + text
         self.cmdText.insert('1.0', text)
@@ -237,8 +243,12 @@ class MainUI(tk.Frame):
         向 PC-DMIS 中添加外部命令
         """
         PcdmisTools.connectPcDmis()
+        if self.isExportPdf.get():
+            PcdmisTools.addPdfPathVar()
         commandString = self.cmdText.get('1.0', 'end').strip()
         PcdmisTools.addBasicAndExternalCommand(commandString)
+        if self.isExportPdf.get():
+            PcdmisTools.addPrintReport()
 
     def aboutTabUI(self, tabFrame: ttk.Frame):
         """
@@ -266,13 +276,15 @@ class Application:
         fileGroup.add_argument('-fr', '--specifyfileatruntime', action='store_true', help='运行时指定导出文件')
         fileGroup.add_argument('-n', '--nospecified', action='store_true', help='不指定导出文件或目录')
 
-        parser.add_argument('--no-prog', action='store_true', help='不保存测量程序文件')
+        parser.add_argument('-ep', '--export-pdf', action='store_true', help='导出PDF')
+        parser.add_argument('-np', '--no-prog', action='store_true', help='不保存测量程序文件')
+
         return parser.parse_args()
     
     @staticmethod
     def cmdMode():
         args = Application.argumentParser()
-        dataprocessor.convertPcdCsvToExcel(noProg=args.no_prog)
+        dataprocessor.convertPcdCsvToExcel(noProg=args.no_prog, exportPdf=args.export_pdf)
 
     @staticmethod
     def uiMode():
