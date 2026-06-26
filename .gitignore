@@ -9,3 +9,5 @@ buildTime.txt
 *.xlsx
 *.csv
 *.log
+.vs
+x64
