@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ForceEnMode.vcxproj" Id="2d812558-12ac-41b9-971f-766e1e1ccd3d" />
+</Solution>
