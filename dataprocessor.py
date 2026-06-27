@@ -304,7 +304,7 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     nowObj = datetime.datetime.now()
     currentDate: str = nowObj.strftime('%Y-%m-%d')
     currentTime: str = nowObj.strftime('%H:%M:%S')
-    currentDataTime: str = nowObj.strftime('(%Y%m%d_%H%M%S)')
+    currentDataTime: str = nowObj.strftime('%Y%m%d_%H%M%S')
 
     # 数据文件保存目录
     if dataPath.strip() == '':
