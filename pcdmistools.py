@@ -34,6 +34,8 @@ class PcdmisTools:
             else:
                 raise RuntimeError(f'连接 PC-DMIS 失败：{str(e)}')
         PcdmisTools.part = app.ActivePartProgram
+        if PcdmisTools.part is None:
+            raise RuntimeError('未找到活动测量程序胡或者未运行 PC-DMIS')
         PcdmisTools.cmds = PcdmisTools.part.Commands
         if save:
             PcdmisTools.part.Save
@@ -107,6 +109,7 @@ class PcdmisTools:
         cmd = PcdmisTools.cmds.Add(Obtype.SET_COMMENT, True)
         cmd.PutText('文档', EnumFieldTypes.COMMENT_TYPE, 0)
         cmd.PutText(f'下方打印报告的文件路径已绑定到变量 ==>> {PcdmisTools.pdfPathVarName}', EnumFieldTypes.COMMENT_FIELD, 0)
+        cmd.PutText('否', EnumFieldTypes.OUTPUT_TYPE, 0)
 
         cmd = PcdmisTools.cmds.Add(Obtype.PRINT_REPORT, True)
         cmd.PutText('终止', EnumFieldTypes.MODE_TYPE, 0)
@@ -125,9 +128,59 @@ class PcdmisTools:
         cmd.PutText('删除实例', EnumFieldTypes.PRINT_DELETE_RUNS, 0)
 
     @staticmethod
-    def removeCommand():
+    def addInputCommentAndSN(forceEnMode: bool = True):
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+        
+        if forceEnMode:
+            cmd = PcdmisTools.cmds.Add(Obtype.EXTERNAL_COMMAND, True)
+            if constants.Status.packaged:
+                forceEnModePath = os.path.join(constants.Path.programFileDir, 'ForceEnMode.exe')
+            else:
+                forceEnModePath = os.path.join(constants.Path.programFileDir, 'ForceEnMode', 'x64', 'Release', 'ForceEnMode.exe')
+            cmd.PutText(forceEnModePath, EnumFieldTypes.COMMAND_STRING, 0)
+            cmd.PutText('不显示', EnumFieldTypes.DISPLAY_TRACE, 0)
+            cmd.PutText('等待', EnumFieldTypes.TRACE_NAME, 0)
+        
+        cmd = PcdmisTools.cmds.Add(Obtype.SET_COMMENT, True)
+        cmd.PutText('输入', EnumFieldTypes.COMMENT_TYPE, 0)
+        cmd.PutText('请输入产品编号：', EnumFieldTypes.COMMENT_FIELD, 0)
+        cmd.PutText('是', EnumFieldTypes.OUTPUT_TYPE, 0)
+        commentId = str(cmd.ID)
+
+        cmd = PcdmisTools.cmds.Add(Obtype.ASSIGNMENT, True)
+        cmd.PutText('SN', EnumFieldTypes.DEST_EXPR, 0)
+        cmd.PutText(f'{commentId}.INPUT', EnumFieldTypes.SRC_EXPR, 0)
+
+    @staticmethod
+    def removeInputCommentAndSN():
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+
+        for idx in range(PcdmisTools.cmds.Count - 1, -1, -1):
+            cmd = PcdmisTools.cmds[idx]
+            if cmd is None:
+                continue
+
+            if cmd.Type == Obtype.EXTERNAL_COMMAND:
+                extCmdStr = cmd.GetFieldValue(EnumFieldTypes.COMMAND_STRING, 0)
+                if 'ForceEnMode'.upper() in extCmdStr.upper():
+                    cmd.Remove()
+            elif cmd.Type == Obtype.ASSIGNMENT:
+                dest = cmd.GetFieldValue(EnumFieldTypes.DEST_EXPR, 0)
+                if 'SN' == dest:
+                    cmd.Remove()
+            elif cmd.Type == Obtype.SET_COMMENT:
+                comment = cmd.GetFieldValue(EnumFieldTypes.COMMENT_FIELD, 0)
+                if '产品编号' in comment:
+                    cmd.Remove()
+
+    @staticmethod
+    def removeTool():
         """
-        采用倒序遍历方式移除命令，彻底规避塌陷引起的索引错乱
+        移除本工具
         """
         if PcdmisTools.cmds is None:
             messagebox.showerror('错误', '未连接 PC-DMIS')
@@ -146,7 +199,7 @@ class PcdmisTools:
                 cmd.Remove()
             elif cmd.Type == Obtype.EXTERNAL_COMMAND:
                 extCmdStr = cmd.GetFieldValue(EnumFieldTypes.COMMAND_STRING, 0)
-                if 'pcdmis-export-data'.upper() in extCmdStr.upper():
+                if 'pcdmis-export-data_win_amd64'.upper() in extCmdStr.upper() or 'python.exe' in extCmdStr.lower():
                     cmd.Remove()
             elif cmd.Type == Obtype.ASSIGNMENT:
                 dest = cmd.GetFieldValue(EnumFieldTypes.DEST_EXPR, 0)
