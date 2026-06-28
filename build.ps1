@@ -9,12 +9,17 @@ pip install nuitka==4.1.2
 python .\savebuildtime.py
 
 nuitka --standalone `
---remove-output `
+--windows-uac-admin `
 --windows-console-mode=disable `
 --lto=yes `
 --no-deployment-flag=self-contained `
---include-module=pdconst `
 --enable-plugin=tk-inter `
+--windows-company-name="IYATT-yx" `
+--windows-product-name="PC-DMIS 数据导出工具" `
+--windows-file-description="PC-DMIS 测量数据自动化导出程序" `
+--windows-product-version="1.0.0.0" `
+--windows-file-version="1.0.0.0" `
+--copyright="Copyright (C) 2026 IYATT-yx. All Rights Reserved." `
 --windows-icon-from-ico=.\icon.ico `
 --include-data-file=.\icon.ico=.\ `
 --include-data-file=.\PcdDimToCsvExporter.bas=.\ `
