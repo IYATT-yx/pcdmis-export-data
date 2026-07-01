@@ -7,14 +7,9 @@
  */
 
 #include <Windows.h>
-#include <iostream>
 
 int wmain(int argc, wchar_t* argv[])
 {
-    // 支持控制台正确显示宽字符
-    std::wcout.imbue(std::locale("chs"));
-    std::wcout << L"正在检查并强制构建纯英语(美国)输入法布局..." << std::endl;
-
     // 动态加载美式英语键盘布局 ("00000409")
     // KLF_ACTIVATE: 瞬间激活
     HKL hKlEnglish = ::LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
@@ -35,19 +30,7 @@ int wmain(int argc, wchar_t* argv[])
 
             // 同时激活当前小工具自身进程的布局，双重保险
             ::ActivateKeyboardLayout(hKlEnglish, KLF_SETFORPROCESS);
-
-            std::wcout << L"成功：已向当前活动窗口发送英语切换请求，并刷新全局默认设置。" << std::endl;
-        }
-        else
-        {
-            std::wcout << L"警告：未捕获到有效的前台活跃窗口。" << std::endl;
         }
     }
-    else
-    {
-        std::wcout << L"错误：无法加载美式英语键盘布局。" << std::endl;
-        return 1;
-    }
-
     return 0;
 }
