@@ -11,3 +11,6 @@ buildTime.txt
 *.log
 .vs
 x64
+*.obj
+*.exe
+bin/
