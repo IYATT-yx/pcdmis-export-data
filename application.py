@@ -38,7 +38,7 @@ class MainUI(tk.Frame):
         notebook.pack(fill='both', expand=True)
 
         useCmdTabFrame = tk.Frame(notebook)
-        notebook.add(useCmdTabFrame, text='使用命令')
+        notebook.add(useCmdTabFrame, text='工具')
         self.useCmdTabUI(useCmdTabFrame)
 
         aboutTabFrame = tk.Frame(notebook)
@@ -53,8 +53,12 @@ class MainUI(tk.Frame):
             tabFrame: 父容器
         """
         # 命令输出框
-        self.cmdText = tk.Text(tabFrame, width = 105, height=5, state='disabled')
+        self.cmdText = tk.Text(tabFrame, height=5, state='disabled')
         self.cmdText.grid(column=0, row=0, columnspan=4, rowspan=4, sticky=tk.NSEW)
+
+        # 列宽等比例自适应
+        for i in range(4):
+            tabFrame.grid_columnconfigure(i, weight=1)
 
         # 第一行功能按钮
         tk.Button(tabFrame, text='复制命令', command=self.onCopyButton) \
@@ -216,7 +220,7 @@ class Application:
         defaultX = int((master.winfo_screenwidth() - width) / 2)
         defaultY = int((master.winfo_screenheight() - height) / 2)
         master.geometry(f'{width}x{height}+{defaultX}+{defaultY}')
-        master.resizable(False, False)
+        master.resizable(True, True)
 
         master.iconbitmap(constants.Basic.logoPath)
 
