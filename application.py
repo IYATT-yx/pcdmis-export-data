@@ -60,46 +60,71 @@ class MainUI(tk.Frame):
         for i in range(4):
             tabFrame.grid_columnconfigure(i, weight=1)
 
-        # 第一行功能按钮
+        # 第一行
+        row: int = 4
         tk.Button(tabFrame, text='复制命令', command=self.onCopyButton) \
-        .grid(column=0, row=4, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
         tk.Button(tabFrame, text='保存程序', command=lambda: PcdmisTools.connectPcDmis(True)) \
-        .grid(column=1, row=4, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=1, row=row, sticky=tk.NSEW, padx=5, pady=5)
         tk.Button(tabFrame, text='-------') \
-        .grid(column=2, row=4, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
         tk.Button(tabFrame, text='-------') \
-        .grid(column=3, row=4, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
 
+        row += 1
         ttk.Separator(tabFrame, orient='horizontal') \
-        .grid(column=0, row=5, columnspan=4, sticky=tk.NSEW)
+        .grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
 
-        # 第二行功能按钮
+        # 第二行
+        row += 1
+        self.outputPathVar = tk.StringVar(self, value='')
+        tk.Entry(tabFrame, textvariable=self.outputPathVar, state='readonly', font=("Arial", 10), bd=2) \
+        .grid(column=0, row=row, columnspan=2, sticky=tk.NSEW, padx=5, pady=5)
+        self.outputPathVar.trace_add('write', self.onUpdate)
+        tk.Button(tabFrame, text='选择输出路径', command=self.onSelectOutputPath) \
+        .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(tabFrame, text='不指定输出路径', command=self.onNoOutputPath) \
+        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
+
+        # 第三行
+        row += 1
         tk.Button(tabFrame, text='添加本工具', command=self.onAddCmd) \
-        .grid(column=0, row=6, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
         self.isSaveProg = tk.BooleanVar(self, value=True)
         tk.Checkbutton(tabFrame, text='保存测量程序副本', variable=self.isSaveProg, command=self.onUpdate) \
-        .grid(column=1, row=6, sticky=tk.W)
+        .grid(column=1, row=row, sticky=tk.W)
         self.isExportPdf = tk.BooleanVar(self, value=False)
         tk.Checkbutton(tabFrame, text='保存PDF报告', variable=self.isExportPdf, command=self.onUpdate) \
-        .grid(column=2, row=6, sticky=tk.W)
+        .grid(column=2, row=row, sticky=tk.W)
         tk.Button(tabFrame, text='移除本工具', command=self.onRemoveTool) \
-        .grid(column=3, row=6, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
 
+        row += 1
         ttk.Separator(tabFrame, orient='horizontal') \
-        .grid(column=0, row=7, columnspan=4, sticky=tk.NSEW)
+        .grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
 
-        # 第三行功能按钮
+        # 第四行
+        row += 1
         tk.Button(tabFrame, text='添加序列号输入', command=self.onAddInputSN) \
-        .grid(column=0, row=8, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
 
         self.isForceEnMode = tk.BooleanVar(self, value=True)
         tk.Checkbutton(tabFrame, text='强制切换英语键盘输入', variable=self.isForceEnMode, command=self.onUpdate) \
-        .grid(column=1, row=8, sticky=tk.W)
+        .grid(column=1, row=row, sticky=tk.W)
         tk.Label(tabFrame, text='注：插入位置在活动光标后') \
-        .grid(column=2, row=8, sticky=tk.W)
+        .grid(column=2, row=row, sticky=tk.W)
 
         tk.Button(tabFrame, text='移除序列号输入', command=self.onRemoveInputSN) \
-        .grid(column=3, row=8, sticky=tk.NSEW, padx=5, pady=5)
+        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
+
+    def onSelectOutputPath(self):
+        path = filedialog.askdirectory(title='选择输出路径')
+        if path != '':
+            path = os.path.normpath(path)
+            self.outputPathVar.set(path)
+
+    def onNoOutputPath(self):
+        self.outputPathVar.set('')
 
     def onRemoveInputSN(self):
         self.writeCmdText('正在移除......', False)
@@ -153,11 +178,15 @@ class MainUI(tk.Frame):
         self.writeCmdText('已复制', False)
         self.master.after(1000, self.onUpdate)
 
-    def onUpdate(self):
+    def onUpdate(self, *args):
         """
         文件选项单选按钮事件回调
         """
-        text = ' -n'
+        outputPath = self.outputPathVar.get().strip()
+        if outputPath != '':
+            text = f'-d "{outputPath}"'
+        else:
+            text = ' -n'
         if not self.isSaveProg.get():
             text += ' --no-prog'
         if self.isExportPdf.get():
@@ -168,6 +197,11 @@ class MainUI(tk.Frame):
         """
         向 PC-DMIS 中添加外部命令
         """
+        outputPath = self.outputPathVar.get().strip()
+        if outputPath != '' and not os.path.exists(outputPath):
+            TopMessagebox.show('警告', '输出路径不存在，请重新选择', TopMessagebox.WARNING)
+            return
+
         PcdmisTools.connectPcDmis()
         if self.isExportPdf.get():
             PcdmisTools.addPdfPathVar()
@@ -196,7 +230,8 @@ class Application:
         """
         parser = CustomArgParse(description='PC-DMIS 数据导出工具')
         fileGroup = parser.add_mutually_exclusive_group(required=True)
-        fileGroup.add_argument('-n', action='store_true', help='命令模式占位，表示执行命令工具')
+        fileGroup.add_argument('-n', action='store_true', help='不指定导出目录（默认工具目录下data文件夹中）')
+        fileGroup.add_argument('-d', '--directory', type=str, help='指定导出目录')
 
         parser.add_argument('-ep', '--export-pdf', action='store_true', help='导出PDF')
         parser.add_argument('-np', '--no-prog', action='store_true', help='不保存测量程序文件')
@@ -206,7 +241,14 @@ class Application:
     @staticmethod
     def cmdMode():
         args = Application.argumentParser()
-        dataprocessor.convertPcdCsvToExcel(noProg=args.no_prog, exportPdf=args.export_pdf)
+        dataPath = '' if args.directory is None else args.directory
+        try:
+            os.makedirs(dataPath, exist_ok=True)
+        except Exception:
+            dataPath = ''
+            errorMsg = traceback.format_exc()
+            logging.error(errorMsg)
+        dataprocessor.convertPcdCsvToExcel(dataPath=dataPath, noProg=args.no_prog, exportPdf=args.export_pdf)
 
     @staticmethod
     def uiMode():
