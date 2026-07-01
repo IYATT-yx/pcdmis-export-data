@@ -245,6 +245,21 @@ def axisLetterToName(dataList: list) -> None:
         rawAxis = row[4]
         row[4] = axisMap.get(rawAxis, rawAxis)
 
+def adjustMinusToleranceSign(dataList: list, minusTolShowNeg: bool) -> None:
+    """
+    根据 PC-DMIS 设置和公差类型，原地修改二维数据列表中下极限偏差（Index 8）的负号。
+
+    Args:
+        dataList (list): PC-DMIS 原始数据行列表。
+        minusTolShowNeg (bool): PC-DMIS 负公差是否显示负号。
+    """
+    for row in dataList:
+        dataType = row[11].strip().upper()
+        if dataType == 'D':
+            row[8] = -row[8]
+        elif dataType == 'FD' and not minusTolShowNeg:
+            row[8] = -row[8]
+
 def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMIS-TEMP.csv', decimalPlaces: int = 4, sheetName: str = '导出数据', noProg: bool = False, exportPdf: bool = False):
     r"""
     将 PC-DMIS 中导出的原始 CSV 文件转换为 Excel 文件。
@@ -360,6 +375,8 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
 
     # 格式化指定小数位
     formatDataPrecision(dataRows, decimalPlaces)
+    # 负公差负号处理
+    adjustMinusToleranceSign(dataRows, minusTolShowNeg)
     # 转换轴成名称
     axisLetterToName(dataRows)
 
@@ -420,12 +437,6 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
                 color = Colors.RED
                 outOfTol = True
         else:
-            # 处理负公差显示负号
-            if type == 'D':
-                minusTol = -minusTol
-            elif type == 'FD' and not minusTolShowNeg:
-                minusTol = -minusTol
-
             if measured >= nominal + plusTol and not (plusTol == 0 and minusTol == 0):
                 color = Colors.RED
                 outOfTol = True
