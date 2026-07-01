@@ -11,3 +11,4 @@ buildTime.txt
 *.log
 .vs
 x64
+.nuitka-cache
