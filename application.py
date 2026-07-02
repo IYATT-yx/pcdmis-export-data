@@ -66,7 +66,7 @@ class MainUI(tk.Frame):
         .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
         tk.Button(tabFrame, text='保存程序', command=lambda: PcdmisTools.connectPcDmis(True)) \
         .grid(column=1, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='-------') \
+        tk.Button(tabFrame, text='打开默认输出目录', command=self.onOpenDefaultDataDir) \
         .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
         tk.Button(tabFrame, text='-------') \
         .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
@@ -81,9 +81,9 @@ class MainUI(tk.Frame):
         tk.Entry(tabFrame, textvariable=self.outputPathVar, state='readonly', font=("Arial", 10), bd=2) \
         .grid(column=0, row=row, columnspan=2, sticky=tk.NSEW, padx=5, pady=5)
         self.outputPathVar.trace_add('write', self.onUpdate)
-        tk.Button(tabFrame, text='选择输出路径', command=self.onSelectOutputPath) \
+        tk.Button(tabFrame, text='选择输出目录', command=self.onSelectOutputPath) \
         .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='不指定输出路径', command=self.onNoOutputPath) \
+        tk.Button(tabFrame, text='不指定输出目录', command=self.onNoOutputPath) \
         .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
 
         # 第三行
@@ -116,6 +116,17 @@ class MainUI(tk.Frame):
 
         tk.Button(tabFrame, text='移除序列号输入', command=self.onRemoveInputSN) \
         .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
+    
+    def onOpenDefaultDataDir(self):
+        dir = constants.Path.defaultDataPath
+        try:
+            os.makedirs(dir, exist_ok=True)
+        except Exception as e:
+            errorMsg = traceback.format_exc()
+            logging.error(errorMsg)
+            TopMessagebox.show('错误', str(e), TopMessagebox.ERROR)
+            return
+        os.startfile(dir)
 
     def onSelectOutputPath(self):
         path = filedialog.askdirectory(title='选择输出路径')
