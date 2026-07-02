@@ -126,6 +126,41 @@ class MainUI(tk.Frame):
     def onNoOutputPath(self):
         self.outputPathVar.set('')
 
+        # 第四行：输出目录
+        ttk.Separator(tabFrame, orient='horizontal') \
+        .grid(column=0, row=9, columnspan=4, sticky=tk.NSEW)
+
+        tk.Label(tabFrame, text='输出目录（留空使用默认 data 目录）：') \
+        .grid(column=0, row=10, columnspan=4, sticky=tk.W, padx=5, pady=(5, 0))
+        self.outputPath = tk.StringVar(self)
+        outputPathFrame = tk.Frame(tabFrame)
+        outputPathFrame.grid(column=0, row=11, columnspan=4, sticky=tk.NSEW, padx=5)
+        tk.Entry(outputPathFrame, textvariable=self.outputPath) \
+        .pack(side='left', fill='x', expand=True)
+        tk.Button(outputPathFrame, text='浏览', command=self.onBrowseOutput) \
+        .pack(side='left', padx=(5, 0))
+        self.outputPath.trace_add('write', lambda *args: self.onUpdate())
+
+    def onBrowseOutput(self):
+        path = filedialog.askdirectory(title='选择输出目录')
+        if path:
+            self.outputPath.set(path)
+
+    def onOpenDataDir(self):
+        dataPath = self.outputPath.get().strip() or constants.Path.defaultDataPath
+        if os.path.exists(dataPath):
+            os.startfile(dataPath)
+        else:
+            os.makedirs(dataPath, exist_ok=True)
+            os.startfile(dataPath)
+
+    def onResetConfig(self):
+        self.isSaveProg.set(True)
+        self.isExportPdf.set(False)
+        self.isForceEnMode.set(True)
+        self.outputPath.set('')
+        self.onUpdate()
+
     def onRemoveInputSN(self):
         self.writeCmdText('正在移除......', False)
         self.update_idletasks()
@@ -191,6 +226,9 @@ class MainUI(tk.Frame):
             text += ' --no-prog'
         if self.isExportPdf.get():
             text += ' --export-pdf'
+        outputPath = self.outputPath.get().strip()
+        if outputPath:
+            text += f' -o "{outputPath}"'
         self.writeCmdText(text)
 
     def onAddCmd(self):
@@ -235,6 +273,7 @@ class Application:
 
         parser.add_argument('-ep', '--export-pdf', action='store_true', help='导出PDF')
         parser.add_argument('-np', '--no-prog', action='store_true', help='不保存测量程序文件')
+        parser.add_argument('-o', '--output', type=str, default='', help='指定数据输出目录（默认：程序目录下的 data 文件夹）')
 
         return parser.parse_args()
     
@@ -257,8 +296,8 @@ class Application:
 
         master.title(constants.Basic.projectName)
 
-        width = 756
-        height = 370
+        width = 860
+        height = 430
         defaultX = int((master.winfo_screenwidth() - width) / 2)
         defaultY = int((master.winfo_screenheight() - height) / 2)
         master.geometry(f'{width}x{height}+{defaultX}+{defaultY}')
