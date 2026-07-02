@@ -241,13 +241,16 @@ class Application:
     @staticmethod
     def cmdMode():
         args = Application.argumentParser()
-        dataPath = '' if args.directory is None else args.directory
-        try:
-            os.makedirs(dataPath, exist_ok=True)
-        except Exception:
+        dataPath = args.directory
+        if dataPath is not None:
+            try:
+                os.makedirs(dataPath, exist_ok=True)
+            except Exception:
+                dataPath = ''
+                errorMsg = traceback.format_exc()
+                logging.error(errorMsg)
+        else:
             dataPath = ''
-            errorMsg = traceback.format_exc()
-            logging.error(errorMsg)
         dataprocessor.convertPcdCsvToExcel(dataPath=dataPath, noProg=args.no_prog, exportPdf=args.export_pdf)
 
     @staticmethod
