@@ -20,10 +20,11 @@ nuitka --standalone `
 --windows-product-version="1.0.0.0" `
 --windows-file-version="1.0.0.0" `
 --copyright="Copyright (C) 2026 IYATT-yx. All Rights Reserved." `
+--user-plugin=.\buildforceenmode.py `
 --windows-icon-from-ico=.\icon.ico `
 --include-data-file=.\icon.ico=.\ `
 --include-data-file=.\PcdDimToCsvExporter.bas=.\ `
---include-data-file=.\ForceEnMode\x64\Release\ForceEnMode.exe=.\ `
+--include-data-file=.\bin\ForceEnMode.exe=.\ `
 --output-dir=dist `
 --output-filename=pcdmis-export-data_win_amd64 `
 .\pcdmis-export-data.py
