@@ -116,6 +116,28 @@ class MainUI(tk.Frame):
 
         tk.Button(tabFrame, text='移除序列号输入', command=self.onRemoveInputSN) \
         .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
+
+        row += 1
+        ttk.Separator(tabFrame, orient='horizontal') \
+        .grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
+
+        # 第五行
+        row += 1
+        tk.Button(tabFrame, text='读取所有命令信息', command=self.onReadAllCmds) \
+        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
+
+    def onReadAllCmds(self):
+        self.writeCmdText('正在读取测量程序中的所有命令信息......', False)
+        self.update_idletasks()
+        pd = PcdmisTools()
+        if pd.connectPcDmis() == False:
+            self.onUpdate()
+            return
+        allCmds = pd.readAllCmds()
+        self.textToClipboard(allCmds)
+        self.writeCmdText('信息已写入剪贴板......', False)
+        self.update_idletasks()
+        self.master.after(2000, self.onUpdate)
     
     def onOpenDefaultDataDir(self):
         dir = constants.Path.defaultDataPath
@@ -141,13 +163,17 @@ class MainUI(tk.Frame):
         self.writeCmdText('正在移除......', False)
         self.update_idletasks()
         pd = PcdmisTools()
-        pd.connectPcDmis()
+        if pd.connectPcDmis() == False:
+            self.onUpdate()
+            return
         pd.removeInputCommentAndSN()
         self.master.after(100, self.onUpdate)
 
     def onAddInputSN(self):
         pd = PcdmisTools()
-        pd.connectPcDmis()
+        if pd.connectPcDmis() == False:
+            self.onUpdate()
+            return
         pd.addInputCommentAndSN(self.isForceEnMode.get())
     
     def onRemoveTool(self):
@@ -157,7 +183,9 @@ class MainUI(tk.Frame):
         self.writeCmdText('正在移除......', False)
         self.update_idletasks()
         PcdmisTools.connectPcDmis()
-        PcdmisTools.removeTool()
+        if PcdmisTools.removeTool() == False:
+            self.onUpdate()
+            return
         self.master.after(100, self.onUpdate)
 
     def rewrite(self, text: str):
@@ -178,14 +206,17 @@ class MainUI(tk.Frame):
         self.cmdText.insert('1.0', text)
         self.cmdText.config(state='disabled')
 
+    def textToClipboard(self, text: str):
+        self.master.clipboard_clear()
+        self.master.clipboard_append(text)
+        self.master.update()
+
     def onCopyButton(self):
         """
         复制按钮事件回调
         """
         textValue = self.cmdText.get('1.0', 'end').strip()
-        self.master.clipboard_clear()
-        self.master.clipboard_append(textValue)
-        self.master.update()
+        self.textToClipboard(textValue)
         self.writeCmdText('已复制', False)
         self.master.after(1000, self.onUpdate)
 
@@ -203,6 +234,7 @@ class MainUI(tk.Frame):
         if self.isExportPdf.get():
             text += ' --export-pdf'
         self.writeCmdText(text)
+        self.update_idletasks()
 
     def onAddCmd(self):
         """

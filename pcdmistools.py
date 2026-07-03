@@ -9,36 +9,72 @@ from obtype import Obtype
 from enumfieldtypes import EnumFieldTypes
 import constants
 import os
+from topmessagebox import TopMessagebox
 
 import win32com.client as wc
 import pywintypes
 from tkinter import messagebox
+import logging
+import subprocess
 
 class PcdmisTools:
     cmds = None
     part = None
 
     @staticmethod
-    def connectPcDmis(save: bool = False):
+    def checkProcessRunning(processName="PCDLRN.exe"):
+        """检查 Windows 进程是否存在"""
+        try:
+            output = subprocess.check_output(
+                f'tasklist /FI "IMAGENAME eq {processName}"', 
+                shell=True, 
+                creationflags=subprocess.CREATE_NO_WINDOW
+            ).decode('gbk', errors='ignore')
+            
+            return processName.lower() in output.lower()
+        except Exception:
+            return False
+
+    @staticmethod
+    def connectPcDmis(save: bool = False) -> bool:
         """
         连接 PC-DMIS
 
         Args:
             save (bool, optional): 是否保存测量程序. Defaults to False.
+
+        Returns:
+            bool: 是否成功连接
         """
+        if not PcdmisTools.checkProcessRunning():
+            msg = '请确保PC-DMIS已经以管理员身份运行运行'
+            TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
+            logging.error(msg)
+            return False
+
         try:
             app = wc.Dispatch('PCDLRN.Application')
         except pywintypes.com_error as e:
             if e.hresult == -2147221021 or e.hresult == -2146959355:
-                raise RuntimeError('请确保PC-DMIS已经以管理员身份运行')
+                msg = '请确保PC-DMIS已经以管理员身份运行'
+                TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
+                logging.error(msg)
+                return False
             else:
-                raise RuntimeError(f'连接 PC-DMIS 失败：{str(e)}')
+                msg = f'连接 PC-DMIS 失败：{str(e)}'
+                TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
+                logging.error(msg)
+                return False
         PcdmisTools.part = app.ActivePartProgram
         if PcdmisTools.part is None:
-            raise RuntimeError('未找到活动测量程序胡或者未运行 PC-DMIS')
+            msg = '未找到活动测量程序胡或者未运行 PC-DMIS'
+            TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
+            logging.error(msg)
+            return False
         PcdmisTools.cmds = PcdmisTools.part.Commands
         if save:
             PcdmisTools.part.Save
+        return True
     
     @staticmethod
     def addBasicAndExternalCommand(commandString: str):
@@ -211,3 +247,19 @@ class PcdmisTools:
                     cmd.Remove()
             elif cmd.Type == Obtype.PRINT_REPORT:
                 cmd.Remove()
+
+    @staticmethod
+    def readAllCmds() -> str:
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+        
+        allCmds = '下标\t标识符\tObtype类型名\tObtype值\n'
+        count = PcdmisTools.cmds.Count
+        for idx in range(count):
+            cmd = PcdmisTools.cmds[idx]
+            obtypeValue = cmd.Type
+            obtypeName = Obtype(obtypeValue).name
+            allCmds += f'{idx}\t{cmd.ID}\t{obtypeName}\t{obtypeValue}\n'
+
+        return allCmds
