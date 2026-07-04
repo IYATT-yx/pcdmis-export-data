@@ -249,10 +249,10 @@ class PcdmisTools:
                 cmd.Remove()
 
     @staticmethod
-    def readAllCmds() -> str:
+    def readAllCmds() -> str | None:
         if PcdmisTools.cmds is None:
             messagebox.showerror('错误', '未连接 PC-DMIS')
-            return
+            return None
         
         allCmds = '下标\t标识符\tObtype类型名\tObtype值\n'
         count = PcdmisTools.cmds.Count

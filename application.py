@@ -10,6 +10,7 @@ from customargparse import CustomArgParse
 import constants
 import dataprocessor
 from topmessagebox import TopMessagebox
+import pdftimeprocessor
 
 import argparse
 import tkinter as tk
@@ -123,8 +124,40 @@ class MainUI(tk.Frame):
 
         # 第五行
         row += 1
+        tk.Label(tabFrame, text='辅助工具' + '👇'*20) \
+        .grid(column=0, row=row, columnspan=4, sticky=tk.W)
+
+        row += 1
         tk.Button(tabFrame, text='读取所有命令信息', command=self.onReadAllCmds) \
         .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(tabFrame, text='同步PDF属性时间', command=self.onSyncPdfTime) \
+        .grid(column=1, row=row, sticky=tk.NSEW, padx=5, pady=5)
+
+    def onSyncPdfTime(self):
+        filePaths = filedialog.askopenfilenames(
+            title="请选择要同步时间的 PDF 文件",
+            filetypes=[("PDF 文件", "*.pdf;*.PDF")]
+        )
+        
+        if not filePaths:
+            return
+            
+        totalCount = len(filePaths)
+        successCount = 0
+        
+        for path in filePaths:
+            timeTuple = pdftimeprocessor.extractTimeFields(path)
+            
+            if timeTuple is None:
+                continue
+                
+            if pdftimeprocessor.modifyFileTimeFromTuple(path, timeTuple):
+                successCount += 1
+                
+        infoMessage = f"本次共选择 {totalCount} 个文件\n成功同步修改 {successCount} 个文件"
+        self.writeCmdText(infoMessage, False)
+        self.update_idletasks()
+        self.master.after(2000, self.onUpdate)
 
     def onReadAllCmds(self):
         self.writeCmdText('正在读取测量程序中的所有命令信息......', False)
@@ -134,6 +167,9 @@ class MainUI(tk.Frame):
             self.onUpdate()
             return
         allCmds = pd.readAllCmds()
+        if allCmds is None:
+            self.onUpdate()
+            return
         self.textToClipboard(allCmds)
         self.writeCmdText('信息已写入剪贴板......', False)
         self.update_idletasks()
