@@ -330,7 +330,8 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     excelFilePath = Common.longPath(os.path.join(excelDir, excelFilename))
     pdfFilePath = os.path.join(pdfDir, pdfFilename)
     progBackupFilename = f'{progNameWithoutExt}({versionString})({currentDataTime})({SN}).PRG'
-    progBackupPath = Common.longPath(os.path.join(excelDir, progBackupFilename))
+    progBackupDir = os.path.join(excelDir, 'prog')
+    progBackupPath = Common.longPath(os.path.join(progBackupDir, progBackupFilename))
 
     if not os.path.exists(excelDir):
         os.makedirs(excelDir, exist_ok=True)
@@ -345,6 +346,8 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     # 备份测量程序文件
     if not noProg:
         try:
+            if not os.path.exists(progBackupDir):
+                os.makedirs(progBackupDir, exist_ok=True)
             shutil.copy2(fullProgName, progBackupPath)
             Common.setFileReadOnly(progBackupPath)
         except:
