@@ -68,6 +68,9 @@ Sub Main
     Dim i As Long
     For i = 1 To cmdCount
         Set cmd = cmds(i)
+        If cmd.Marked = False Then
+            GoTo ContinueLoop
+        End If
         If readDimension(cmd, fields) Then
             lineCount = lineCount + 1
             ReDim Preserve dataLineList(0 To lineCount)
@@ -84,6 +87,8 @@ Sub Main
         Else
             readFcfOld(cmd, fields, dataLineList, lineCount)
         End If
+
+ContinueLoop:
     Next i
 
     ' ==============================================================================
