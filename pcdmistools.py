@@ -91,6 +91,11 @@ class PcdmisTools:
         endCmd = PcdmisTools.cmds.LastCommand
         PcdmisTools.cmds.InsertionPointAfter(endCmd)
 
+        cmd = PcdmisTools.cmds.Add(Obtype.SET_COMMENT, True)
+        cmd.PutText('文档', EnumFieldTypes.COMMENT_TYPE, 0)
+        cmd.PutText('下方为检测数据自动导出工具\r\n请勿将测量、评价等命令插入下方\r\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇\r\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇👇', EnumFieldTypes.COMMENT_FIELD, 0)
+        cmd.PutText('否', EnumFieldTypes.OUTPUT_TYPE, 0)
+
         basicPath = os.path.join(constants.Path.programFileDir, 'PcdDimToCsvExporter.bas')
         cmd = PcdmisTools.cmds.Add(Obtype.BASIC_SCRIPT, True)
         cmd.PutText(basicPath, EnumFieldTypes.FILE_NAME, 0)
