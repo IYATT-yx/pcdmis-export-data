@@ -329,7 +329,7 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     pdfFilename = f'{progNameWithoutExt}({SN})({currentDataTime}).pdf'
     excelFilePath = Common.longPath(os.path.join(excelDir, excelFilename))
     pdfFilePath = os.path.join(pdfDir, pdfFilename)
-    progBackupFilename = f'{progNameWithoutExt}({versionString})({currentDataTime})({SN}).PRG'
+    progBackupFilename = f'{progNameWithoutExt}({versionString})({SN})({currentDataTime}).PRG'
     progBackupDir = os.path.join(excelDir, 'prog')
     progBackupPath = Common.longPath(os.path.join(progBackupDir, progBackupFilename))
 
