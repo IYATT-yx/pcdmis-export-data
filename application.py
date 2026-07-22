@@ -282,6 +282,7 @@ class MainUI(tk.Frame):
             return
 
         PcdmisTools.connectPcDmis()
+        PcdmisTools.addWarningComment()
         if self.isExportPdf.get():
             PcdmisTools.addPdfPathVar()
         commandString = self.cmdText.get('1.0', 'end').strip()
