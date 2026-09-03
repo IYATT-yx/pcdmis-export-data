@@ -260,6 +260,51 @@ def adjustMinusToleranceSign(dataList: list, minusTolShowNeg: bool) -> None:
         elif dataType == 'FD' and not minusTolShowNeg:
             row[8] = -row[8]
 
+def appendSummaryRecord(summaryCsvDir: str, fullProgName: str, excelFilePath: str, progBackupPath: str, pdfFilePath: str, isProgSaved: bool, isPdfSaved: bool) -> None:
+    """
+    向数据目录下的 summary.csv 文件追加一条测量记录。
+    如果文件不存在，则先创建并写入表头。追加完成后将文件设为只读。
+    """
+    summaryCsvPath = os.path.join(summaryCsvDir, "检测记录.csv")
+    fileExists = os.path.exists(summaryCsvPath)
+
+    nowObj = datetime.datetime.now()
+    currentDate = nowObj.strftime('%Y-%m-%d')
+    currentTime = nowObj.strftime('%H:%M:%S')
+
+    # 处理未保存副本或 PDF 时留空逻辑
+    progBackupVal = progBackupPath if isProgSaved else "无"
+    pdfFileVal = pdfFilePath if isPdfSaved else "无"
+
+    headers = ["检测日期", "检测时间", "检测程序路径", "Excel导出路径", "程序保存路径", "PDF保存路径"]
+    row = [
+        currentDate,
+        currentTime,
+        fullProgName,
+        excelFilePath,
+        progBackupVal,
+        pdfFileVal
+    ]
+
+    try:
+        os.makedirs(summaryCsvDir, exist_ok=True)
+        
+        # 写入前：若文件已存在且为只读，先解除只读属性
+        if fileExists:
+            Common.setFileReadOnly(summaryCsvPath, False)
+
+        with open(summaryCsvPath, 'a', encoding='utf-8-sig', newline='') as f:
+            writer = csv.writer(f)
+            if not fileExists:
+                writer.writerow(headers)
+            writer.writerow(row)
+    except Exception as e:
+        print(f"警告：写入汇总记录 summary.csv 失败: {e}")
+    finally:
+        # 写入完成后：只要文件存在，就恢复只读属性
+        if os.path.exists(summaryCsvPath):
+            Common.setFileReadOnly(summaryCsvPath, True)
+
 def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMIS-TEMP.csv', decimalPlaces: int = 4, sheetName: str = '导出数据', noProg: bool = False, exportPdf: bool = False):
     r"""
     将 PC-DMIS 中导出的原始 CSV 文件转换为 Excel 文件。
@@ -344,12 +389,14 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
         pd.setPdfPathVar(pdfFilePath)
 
     # 备份测量程序文件
+    progBackupSuccess = False
     if not noProg:
         try:
             if not os.path.exists(progBackupDir):
                 os.makedirs(progBackupDir, exist_ok=True)
             shutil.copy2(fullProgName, progBackupPath)
             Common.setFileReadOnly(progBackupPath)
+            progBackupSuccess = True
         except:
             print('警告：测量程序文件备份失败')
 
@@ -457,6 +504,17 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     # 保存 Excel 文件
     wb.save(excelFilePath)
     Common.setFileReadOnly(excelFilePath)
+
+    # 追加写入汇总 CSV 文件 (保存在数据根目录下)
+    appendSummaryRecord(
+        summaryCsvDir=dataPath,
+        fullProgName=fullProgName,
+        excelFilePath=excelFilePath,
+        progBackupPath=progBackupPath,
+        pdfFilePath=pdfFilePath,
+        isProgSaved=progBackupSuccess,
+        isPdfSaved=exportPdf
+    )
 
     # 清除临时文件
     if os.path.exists(csvFilePath):
