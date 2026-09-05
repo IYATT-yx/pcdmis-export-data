@@ -238,7 +238,7 @@ class MainUI(tk.Frame):
         self.cmdText.config(state='normal')
         self.cmdText.delete('1.0', 'end')
         if addExePath:
-            text = constants.Path.executableCommand + ' ' + text
+            text = constants.Path.executableCommandString + ' ' + text
         self.cmdText.insert('1.0', text)
         self.cmdText.config(state='disabled')
 
@@ -365,7 +365,7 @@ class Application:
             TopMessagebox.show(f'{constants.Basic.projectName} - 顶层错误消息', str(e), TopMessagebox.ERROR)
 
 logging.basicConfig(
-    filename= os.path.join(constants.Path.programFileDir, 'error.log'),
+    filename= os.path.join(constants.Path.enterDir, 'error.log'),
     level=logging.ERROR,  # 仅记录 ERROR 及以上级别的日志
     format='%(asctime)s [%(levelname)s] %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S',

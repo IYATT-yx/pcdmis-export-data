@@ -105,7 +105,7 @@ class PcdmisTools:
         endCmd = PcdmisTools.cmds.LastCommand
         PcdmisTools.cmds.InsertionPointAfter(endCmd)
 
-        basicPath = os.path.join(constants.Path.programFileDir, 'PcdDimToCsvExporter.bas')
+        basicPath = os.path.join(constants.Path.enterDir, 'PcdDimToCsvExporter.bas')
         cmd = PcdmisTools.cmds.Add(Obtype.BASIC_SCRIPT, True)
         cmd.PutText(basicPath, EnumFieldTypes.FILE_NAME, 0)
         cmd.PutText('是', EnumFieldTypes.SHOW_DETAILS, 0)
@@ -185,10 +185,10 @@ class PcdmisTools:
         
         if forceEnMode:
             cmd = PcdmisTools.cmds.Add(Obtype.EXTERNAL_COMMAND, True)
-            if constants.Status.packaged:
-                forceEnModePath = os.path.join(constants.Path.programFileDir, 'ForceEnMode.exe')
+            if constants.Status.isCompiled:
+                forceEnModePath = os.path.join(constants.Path.enterDir, 'ForceEnMode.exe')
             else:
-                forceEnModePath = os.path.join(constants.Path.programFileDir, 'ForceEnMode', 'x64', 'Release', 'ForceEnMode.exe')
+                forceEnModePath = os.path.join(constants.Path.enterDir, 'ForceEnMode', 'x64', 'Release', 'ForceEnMode.exe')
             cmd.PutText(forceEnModePath, EnumFieldTypes.COMMAND_STRING, 0)
             cmd.PutText('不显示', EnumFieldTypes.DISPLAY_TRACE, 0)
             cmd.PutText('等待', EnumFieldTypes.TRACE_NAME, 0)

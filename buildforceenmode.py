@@ -5,8 +5,6 @@ author: IYATT-yx
 copyright:  Copyright (c) 2026 IYATT-yx.
             Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
-import constants
-
 import os
 import sys
 import subprocess
@@ -16,8 +14,9 @@ from nuitka.plugins.PluginBase import NuitkaPluginBase
 print("====================================================")
 print("★ [User Plugin] 开始编译 ForceEnMode ......")
 
-cppSource = os.path.join(constants.Path.runtimeDir, "ForceEnMode", "main.cpp")
-binDir = os.path.join(constants.Path.runtimeDir, "bin")
+rootDir = os.path.dirname(__file__)
+cppSource = os.path.join(rootDir, "ForceEnMode", "main.cpp")
+binDir = os.path.join(rootDir, "bin")
 outputExePath = os.path.join(binDir, "ForceEnMode.exe")
 
 os.makedirs(binDir, exist_ok=True)
@@ -73,7 +72,7 @@ else:
     cmd = f'"{compilerPath}" {flagsStr} "{cppSource}" /Fe"{outputExePath}" user32.lib'
 
 print(f"★ [User Plugin] 执行 MSVC 构建命令:\n{cmd}")
-result = subprocess.run(cmd, shell=True, env=os.environ, cwd=constants.Path.runtimeDir, capture_output=True, text=True)
+result = subprocess.run(cmd, shell=True, env=os.environ, cwd=rootDir, capture_output=True, text=True)
 
 if result.returncode == 0:
     print("★ [User Plugin] ForceEnMode.exe 编译成功！")
