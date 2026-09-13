@@ -29,6 +29,13 @@ nuitka --standalone `
 --output-filename=pcdmis-export-data_win_amd64 `
 .\pcdmis-export-data.py
 
+if (Test-Path "dist\pcdmis-export-data.dist") {
+    if (Test-Path "dist\pcdmis-export-data_win_amd64") {
+        Remove-Item -Path "dist\pcdmis-export-data_win_amd64" -Recurse -Force
+    }
+    Rename-Item -Path "dist\pcdmis-export-data.dist" -NewName "pcdmis-export-data_win_amd64"
+}
+
 $endTime = Get-Date
 $elapsedTime = New-TimeSpan -Start $startTime -End $endTime
 Write-Output "程序构建用时：$($elapsedTime.TotalSeconds) 秒"
