@@ -260,7 +260,7 @@ def adjustMinusToleranceSign(dataList: list, minusTolShowNeg: bool) -> None:
         elif dataType == 'FD' and not minusTolShowNeg:
             row[8] = -row[8]
 
-def appendSummaryRecord(summaryCsvDir: str, fullProgName: str, excelFilePath: str, progBackupPath: str, pdfFilePath: str, isProgSaved: bool, isPdfSaved: bool) -> None:
+def appendSummaryRecord(summaryCsvDir: str, sn: str, fullProgName: str, excelFilePath: str, progBackupPath: str, pdfFilePath: str, isProgSaved: bool, isPdfSaved: bool) -> None:
     """
     向数据目录下的 summary.csv 文件追加一条测量记录。
     如果文件不存在，则先创建并写入表头。追加完成后将文件设为只读。
@@ -276,10 +276,11 @@ def appendSummaryRecord(summaryCsvDir: str, fullProgName: str, excelFilePath: st
     progBackupVal = progBackupPath if isProgSaved else "无"
     pdfFileVal = pdfFilePath if isPdfSaved else "无"
 
-    headers = ["检测日期", "检测时间", "检测程序路径", "Excel导出路径", "程序保存路径", "PDF保存路径"]
+    headers = ["检测日期", "检测时间", "序列号", "检测程序路径", "Excel导出路径", "程序保存路径", "PDF保存路径"]
     row = [
         currentDate,
         currentTime,
+        sn,
         fullProgName,
         excelFilePath,
         progBackupVal,
@@ -508,6 +509,7 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     # 追加写入汇总 CSV 文件 (保存在数据根目录下)
     appendSummaryRecord(
         summaryCsvDir=dataPath,
+        sn=SN,
         fullProgName=fullProgName,
         excelFilePath=excelFilePath,
         progBackupPath=progBackupPath,
