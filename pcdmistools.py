@@ -47,7 +47,7 @@ class PcdmisTools:
             bool: 是否成功连接
         """
         if not PcdmisTools.checkProcessRunning():
-            msg = '请确保PC-DMIS已经以管理员身份运行运行'
+            msg = '请确保PC-DMIS已经以管理员身份运行'
             TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
             logging.error(msg)
             return False
