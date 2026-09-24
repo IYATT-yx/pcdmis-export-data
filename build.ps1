@@ -6,7 +6,7 @@ python.exe -m pip install --upgrade pip
 pip install -r requirements.txt
 pip install nuitka==4.2
 
-python .\savebuildtime.py
+Set-Content -Path ".\buildtime.py" -Value "buildTime = '$(Get-Date -Format 'yyyyMMdd_HHmmss')'" -Encoding UTF8
 
 nuitka --standalone `
 --windows-uac-admin `
