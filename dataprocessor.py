@@ -158,7 +158,7 @@ def cleanRawDataRows(rawDataRows: list) -> list:
             currentShellFeatures = ['', '', '']
     return cleanedRows
 
-def writeExcelCell(ws, row: int, col: int, value, verticalAlign: VerticalAlign = VerticalAlign.center, horizontalAlign: HorizontalAlign = HorizontalAlign.left, fillColor: Colors = None) -> None:
+def writeExcelCell(ws, row: int, col: int, value, verticalAlign: VerticalAlign = VerticalAlign.center, horizontalAlign: HorizontalAlign = HorizontalAlign.left, fillColor: Colors = None, wrapText: bool = False) -> None:
     """
     封装单元格写入函数，支持通过枚举设置对齐方式与背景颜色
     
@@ -170,6 +170,7 @@ def writeExcelCell(ws, row: int, col: int, value, verticalAlign: VerticalAlign =
         verticalAlign: 垂直对齐方式枚举 (VerticalAlign)
         horizontalAlign: 水平对齐方式枚举 (HorizontalAlign)
         fillColor: 颜色枚举 (Colors)，为 None 时不填充
+        wrapText: 是否自动换行
     """
     if value == '':
         value = '/'
@@ -177,6 +178,8 @@ def writeExcelCell(ws, row: int, col: int, value, verticalAlign: VerticalAlign =
     cell.alignment = Alignment(vertical=verticalAlign.value, horizontal=horizontalAlign.value)
     if fillColor:
         cell.fill = PatternFill(start_color=fillColor.value, end_color=fillColor.value, fill_type='solid')
+    if wrapText:
+        cell.alignment = Alignment(wrap_text=True)
 
 def setColumnWidth(ws, col_idx: int, width: float) -> None:
     """
@@ -500,7 +503,7 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     color = Colors.GREEN
     if outOfTol:
         color = Colors.YELLOW
-    writeExcelCell(ws, currentRow, 4, SN, fillColor=color)
+    writeExcelCell(ws, currentRow, 4, SN, fillColor=color, wrapText=True)
 
     # 保存 Excel 文件
     wb.save(excelFilePath)
