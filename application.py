@@ -336,8 +336,6 @@ class MainUI(tk.Frame):
         else:
             TopMessagebox.show('错误', '未知的文件选项', TopMessagebox.ERROR)
 
-        if not self.isSaveProg.get():
-            text += ' --no-prog'
         if self.isExportPdf.get():
             text += ' --export-pdf'
         self.writeCmdText(text)
@@ -355,6 +353,8 @@ class MainUI(tk.Frame):
             PcdmisTools.addPdfPathVar()
         if not self.isSaveProg.get():
             PcdmisTools.addNoSaveProgFlag()
+        else:
+            PcdmisTools.addNoSaveProgFlag(False)
         commandString = self.cmdText.get('1.0', 'end').strip()
         PcdmisTools.addBasicAndExternalCommand(commandString)
         if self.isExportPdf.get():
@@ -385,6 +385,8 @@ class Application:
         fileGroup.add_argument('-f', '--file', type=str, help='指定导出文件')
 
         parser.add_argument('-ep', '--export-pdf', action='store_true', help='导出PDF')
+
+        # 该参数已废弃，无实际作用。保留参数是为了兼容已添加到测量程序中的命令不会发生报错。新控制方法为测量程序中添加 NO_SAVE_PROG="1" 标记。
         parser.add_argument('-np', '--no-prog', action='store_true', help='不保存测量程序文件')
 
         return parser.parse_args()
@@ -410,7 +412,9 @@ class Application:
         except Exception as e:
             outputDir = ''
             outputFile = ''
-        dataprocessor.convertPcdCsvToExcel(outputDir=outputDir, outputFile=outputFile, noProg=args.no_prog, exportPdf=args.export_pdf)
+        PcdmisTools.connectPcDmis(online=True)
+        noSaveProg = PcdmisTools.getNoSaveProgFlag()
+        dataprocessor.convertPcdCsvToExcel(outputDir=outputDir, outputFile=outputFile, noProg=noSaveProg, exportPdf=args.export_pdf)
 
     @staticmethod
     def uiMode():

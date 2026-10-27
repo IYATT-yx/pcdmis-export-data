@@ -10,6 +10,7 @@ from enumfieldtypes import EnumFieldTypes
 import constants
 import os
 from topmessagebox import TopMessagebox
+from machineconnectionstatus import MachineConnectionStatus
 
 import win32com.client as wc
 import pywintypes
@@ -20,6 +21,8 @@ import subprocess
 class PcdmisTools:
     cmds = None
     part = None
+    pdfPathVarName = 'PDF_FULL_NAME'
+    saveProgFlagName = 'NO_SAVE_PROG'
 
     @staticmethod
     def checkProcessRunning(processName="PCDLRN.exe"):
@@ -36,12 +39,13 @@ class PcdmisTools:
             return False
 
     @staticmethod
-    def connectPcDmis(save: bool = False) -> bool:
+    def connectPcDmis(save: bool = False, online=False) -> bool:
         """
         连接 PC-DMIS
 
         Args:
             save (bool, optional): 是否保存测量程序. Defaults to False.
+            online (bool, optional): 优先连接联机程序。
 
         Returns:
             bool: 是否成功连接
@@ -65,9 +69,20 @@ class PcdmisTools:
                 TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
                 logging.error(msg)
                 return False
-        PcdmisTools.part = app.ActivePartProgram
+
+        PcdmisTools.part = None
+        if online:
+            parts = app.PartPrograms
+            for part in parts:
+                machine = part.ActiveMachine
+                status = machine.ConnectionStatus
+                if status == MachineConnectionStatus.MachineConnected:
+                    PcdmisTools.part = part
         if PcdmisTools.part is None:
-            msg = '未找到活动测量程序胡或者未运行 PC-DMIS'
+            PcdmisTools.part = app.ActivePartProgram
+
+        if PcdmisTools.part is None:
+            msg = '未找到活动测量程序或者未运行 PC-DMIS'
             TopMessagebox.show('错误', msg, TopMessagebox.ERROR)
             logging.error(msg)
             return False
@@ -83,6 +98,13 @@ class PcdmisTools:
             return ''
 
         return PcdmisTools.part.FullName
+
+    @staticmethod
+    def getNoSaveProgFlag() -> bool:
+        if PcdmisTools.part is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return False
+        return PcdmisTools.part.GetVariableValue(PcdmisTools.saveProgFlagName).StringValue == '1'
 
     @staticmethod
     def addWarningComment():
@@ -125,7 +147,6 @@ class PcdmisTools:
         cmd.PutText('不显示', EnumFieldTypes.DISPLAY_TRACE, 0)
         cmd.PutText('等待', EnumFieldTypes.TRACE_NAME, 0)
 
-    pdfPathVarName = 'PDF_FULL_NAME'
 
     @staticmethod
     def addPdfPathVar():
@@ -211,10 +232,8 @@ class PcdmisTools:
         cmd.PutText('SN', EnumFieldTypes.DEST_EXPR, 0)
         cmd.PutText(f'{commentId}.INPUT', EnumFieldTypes.SRC_EXPR, 0)
 
-    SaveProgFlagName = 'NO_SAVE_PROG'
-
     @staticmethod
-    def addNoSaveProgFlag():
+    def addNoSaveProgFlag(noSaveProg: bool = True):
         if PcdmisTools.cmds is None:
             messagebox.showerror('错误', '未连接 PC-DMIS')
             return
@@ -223,8 +242,11 @@ class PcdmisTools:
         PcdmisTools.cmds.InsertionPointAfter(endCmd)
 
         cmd = PcdmisTools.cmds.Add(Obtype.ASSIGNMENT, True)
-        cmd.PutText(PcdmisTools.SaveProgFlagName, EnumFieldTypes.DEST_EXPR, 0)
-        cmd.PutText('\"1\"', EnumFieldTypes.SRC_EXPR, 0)
+        cmd.PutText(PcdmisTools.saveProgFlagName, EnumFieldTypes.DEST_EXPR, 0)
+        if noSaveProg:
+            cmd.PutText('\"1\"', EnumFieldTypes.SRC_EXPR, 0)
+        else:
+            cmd.PutText('\"0\"', EnumFieldTypes.SRC_EXPR, 0)
 
     @staticmethod
     def removeInputCommentAndSN():
@@ -276,7 +298,7 @@ class PcdmisTools:
                     cmd.Remove()
             elif cmd.Type == Obtype.ASSIGNMENT:
                 dest = cmd.GetFieldValue(EnumFieldTypes.DEST_EXPR, 0)
-                if PcdmisTools.pdfPathVarName in dest or PcdmisTools.SaveProgFlagName in dest:
+                if PcdmisTools.pdfPathVarName in dest or PcdmisTools.saveProgFlagName in dest:
                     cmd.Remove()
             elif cmd.Type == Obtype.SET_COMMENT:
                 comment = cmd.GetFieldValue(EnumFieldTypes.COMMENT_FIELD, 0)
