@@ -211,6 +211,21 @@ class PcdmisTools:
         cmd.PutText('SN', EnumFieldTypes.DEST_EXPR, 0)
         cmd.PutText(f'{commentId}.INPUT', EnumFieldTypes.SRC_EXPR, 0)
 
+    SaveProgFlagName = 'NO_SAVE_PROG'
+
+    @staticmethod
+    def addNoSaveProgFlag():
+        if PcdmisTools.cmds is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return
+        
+        endCmd = PcdmisTools.cmds.LastCommand
+        PcdmisTools.cmds.InsertionPointAfter(endCmd)
+
+        cmd = PcdmisTools.cmds.Add(Obtype.ASSIGNMENT, True)
+        cmd.PutText(PcdmisTools.SaveProgFlagName, EnumFieldTypes.DEST_EXPR, 0)
+        cmd.PutText('\"1\"', EnumFieldTypes.SRC_EXPR, 0)
+
     @staticmethod
     def removeInputCommentAndSN():
         if PcdmisTools.cmds is None:
@@ -261,7 +276,7 @@ class PcdmisTools:
                     cmd.Remove()
             elif cmd.Type == Obtype.ASSIGNMENT:
                 dest = cmd.GetFieldValue(EnumFieldTypes.DEST_EXPR, 0)
-                if PcdmisTools.pdfPathVarName in dest:
+                if PcdmisTools.pdfPathVarName in dest or PcdmisTools.SaveProgFlagName in dest:
                     cmd.Remove()
             elif cmd.Type == Obtype.SET_COMMENT:
                 comment = cmd.GetFieldValue(EnumFieldTypes.COMMENT_FIELD, 0)

@@ -325,6 +325,10 @@ def convertPcdCsvToExcel(outputDir: str = '', outputFile: str = '', csvFilePath:
         msg: str = f'CSV 数据源文件 {csvFilePath} 不存在。'
         raise FileNotFoundError(msg)
 
+    if outputDir is None or outputFile is None:
+        msg: str = '错误：数据文件保存路径和名称不能为 None。'
+        raise ValueError(msg)
+
     rawDataRows = []
     with open(csvFilePath, 'r', encoding='utf-8', newline='') as f:
         reader = csv.reader(f)

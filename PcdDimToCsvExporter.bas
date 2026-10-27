@@ -100,9 +100,18 @@ ContinueLoop:
         MsgBox "Error: No production data was found.", 16, "Data Error"
     End If
 
+    Dim saveStr As String
+    saveStr = ""
+    
     On Error Resume Next
-        part.Save
+    saveStr = part.GetVariableValue("NO_SAVE_PROG").StringValue
     On Error GoTo 0
+
+    If saveStr <> "1" Then
+        On Error Resume Next
+        part.Save
+        On Error GoTo 0
+    End If
 
     Set cmds = Nothing
     Set part = Nothing

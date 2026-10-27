@@ -348,14 +348,13 @@ class MainUI(tk.Frame):
         向 PC-DMIS 中添加外部命令
         """
         outputPath = self.outputDirVar.get().strip()
-        if outputPath != '' and not os.path.exists(outputPath):
-            TopMessagebox.show('警告', '输出路径不存在，请重新选择', TopMessagebox.WARNING)
-            return
 
         PcdmisTools.connectPcDmis()
         PcdmisTools.addWarningComment()
         if self.isExportPdf.get():
             PcdmisTools.addPdfPathVar()
+        if not self.isSaveProg.get():
+            PcdmisTools.addNoSaveProgFlag()
         commandString = self.cmdText.get('1.0', 'end').strip()
         PcdmisTools.addBasicAndExternalCommand(commandString)
         if self.isExportPdf.get():
@@ -405,8 +404,12 @@ class Application:
                 outputDir = outputDir.strip()
                 os.makedirs(outputDir, exist_ok=True)
                 outputFile = ''
+            else:
+                outputDir = ''
+                outputFile = ''
         except Exception as e:
             outputDir = ''
+            outputFile = ''
         dataprocessor.convertPcdCsvToExcel(outputDir=outputDir, outputFile=outputFile, noProg=args.no_prog, exportPdf=args.export_pdf)
 
     @staticmethod
