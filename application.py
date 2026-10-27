@@ -5,22 +5,21 @@ author: IYATT-yx
 copyright:  Copyright (c) 2025-2026 IYATT-yx.
             Licensed under the MIT License. See LICENSE file in the project root for full license information.
 """
+import argparse
+import tkinter as tk
+from tkinter import ttk, filedialog
+import os
+import sys
+import logging
+import traceback
+import subprocess
+
 from pcdmistools import PcdmisTools
 from customargparse import CustomArgParse
 import constants
 import dataprocessor
 from topmessagebox import TopMessagebox
 import pdftimeprocessor
-
-import argparse
-import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
-import os
-import sys
-import logging
-import traceback
 
 class MainUI(tk.Frame):
     def __init__(self, master: tk.Tk=None):
@@ -69,7 +68,7 @@ class MainUI(tk.Frame):
         .grid(column=1, row=row, sticky=tk.NSEW, padx=5, pady=5)
         tk.Button(tabFrame, text='打开默认输出目录', command=self.onOpenDefaultDataDir) \
         .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='-------') \
+        tk.Button(tabFrame, text='打开测量程序所在的位置', command=self.onOpenProgramFile) \
         .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
 
         row += 1
@@ -185,6 +184,16 @@ class MainUI(tk.Frame):
             TopMessagebox.show('错误', str(e), TopMessagebox.ERROR)
             return
         os.startfile(dir)
+
+    def onOpenProgramFile(self):
+        pd = PcdmisTools()
+        if pd.connectPcDmis() == False:
+            return
+        programFilePath = pd.getProgramFullName()
+        if os.path.exists(programFilePath):
+            subprocess.run(['explorer.exe', '/select,', programFilePath])
+        else:
+            TopMessagebox.show('错误', '未找到测量程序文件', TopMessagebox.ERROR)
 
     def onSelectOutputPath(self):
         path = filedialog.askdirectory(title='选择输出路径')

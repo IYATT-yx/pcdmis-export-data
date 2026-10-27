@@ -77,6 +77,14 @@ class PcdmisTools:
         return True
 
     @staticmethod
+    def getProgramFullName() -> str:
+        if PcdmisTools.part is None:
+            messagebox.showerror('错误', '未连接 PC-DMIS')
+            return ''
+
+        return PcdmisTools.part.FullName
+
+    @staticmethod
     def addWarningComment():
         if PcdmisTools.cmds is None:
             messagebox.showerror('错误', '未连接 PC-DMIS')
