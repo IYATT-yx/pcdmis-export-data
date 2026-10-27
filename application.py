@@ -22,6 +22,12 @@ from topmessagebox import TopMessagebox
 import pdftimeprocessor
 
 class MainUI(tk.Frame):
+    class FileOptions:
+        '''导出方式'''
+        NOSPECIFIED = 0
+        DIRECTORY = 1
+        FILE = 2
+
     def __init__(self, master: tk.Tk=None):
         super().__init__(master)
         self.master = master
@@ -60,77 +66,98 @@ class MainUI(tk.Frame):
         for i in range(4):
             tabFrame.grid_columnconfigure(i, weight=1)
 
-        # 第一行
-        row: int = 4
-        tk.Button(tabFrame, text='复制命令', command=self.onCopyButton) \
-        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='保存程序', command=lambda: PcdmisTools.connectPcDmis(True)) \
-        .grid(column=1, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='打开默认输出目录', command=self.onOpenDefaultDataDir) \
-        .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='打开测量程序所在的位置', command=self.onOpenProgramFile) \
-        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
+        # 基础组框
+        row = 4
+        baseBox = tk.LabelFrame(tabFrame, text='基础', padx=10, pady=10)
+        baseBox.grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
+        for i in range(4):
+            baseBox.grid_columnconfigure(i, weight=1)
+        # 组框内部组件：
+        tk.Button(baseBox, text='复制命令', command=self.onCopyButton) \
+        .grid(column=0, row=0, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(baseBox, text='保存程序', command=lambda: PcdmisTools.connectPcDmis(True)) \
+        .grid(column=1, row=0, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(baseBox, text='打开默认输出目录', command=self.onOpenDefaultDataDir) \
+        .grid(column=2, row=0, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(baseBox, text='打开测量程序所在的位置', command=self.onOpenProgramFile) \
+        .grid(column=3, row=0, sticky=tk.NSEW, padx=5, pady=5)
 
+        # 序列号工具组框
         row += 1
-        ttk.Separator(tabFrame, orient='horizontal') \
-        .grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
-
-        # 第二行
-        row += 1
-        self.outputPathVar = tk.StringVar(self, value='')
-        tk.Entry(tabFrame, textvariable=self.outputPathVar, state='readonly', font=("Arial", 10), bd=2) \
-        .grid(column=0, row=row, columnspan=2, sticky=tk.NSEW, padx=5, pady=5)
-        self.outputPathVar.trace_add('write', self.onUpdate)
-        tk.Button(tabFrame, text='选择输出目录', command=self.onSelectOutputPath) \
-        .grid(column=2, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='不指定输出目录', command=self.onNoOutputPath) \
-        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
-
-        # 第三行
-        row += 1
-        tk.Button(tabFrame, text='添加本工具', command=self.onAddCmd) \
-        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        self.isSaveProg = tk.BooleanVar(self, value=True)
-        tk.Checkbutton(tabFrame, text='保存测量程序副本', variable=self.isSaveProg, command=self.onUpdate) \
-        .grid(column=1, row=row, sticky=tk.W)
-        self.isExportPdf = tk.BooleanVar(self, value=False)
-        tk.Checkbutton(tabFrame, text='保存PDF报告', variable=self.isExportPdf, command=self.onUpdate) \
-        .grid(column=2, row=row, sticky=tk.W)
-        tk.Button(tabFrame, text='移除本工具', command=self.onRemoveTool) \
-        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
-
-        row += 1
-        ttk.Separator(tabFrame, orient='horizontal') \
-        .grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
-
-        # 第四行
-        row += 1
-        tk.Button(tabFrame, text='添加序列号输入', command=self.onAddInputSN) \
-        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
-
+        snBox = tk.LabelFrame(tabFrame, text='序列号工具', padx=10, pady=10)
+        snBox.grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
+        for i in range(4):
+            snBox.grid_columnconfigure(i, weight=1)
+        # 组框内部组件：
+        tk.Button(snBox, text='添加序列号输入', command=self.onAddInputSN) \
+        .grid(column=0, row=0, sticky=tk.NSEW, padx=5, pady=5)
         self.isForceEnMode = tk.BooleanVar(self, value=True)
-        tk.Checkbutton(tabFrame, text='强制切换英语键盘输入', variable=self.isForceEnMode, command=self.onUpdate) \
-        .grid(column=1, row=row, sticky=tk.W)
-        tk.Label(tabFrame, text='注：插入位置在活动光标后') \
-        .grid(column=2, row=row, sticky=tk.W)
+        tk.Checkbutton(snBox, text='强制切换英语键盘输入', variable=self.isForceEnMode, command=self.onUpdate) \
+        .grid(column=1, row=0, sticky=tk.W)
+        tk.Label(snBox, text='注：插入位置在活动光标后') \
+        .grid(column=2, row=0, sticky=tk.W)
+        tk.Button(snBox, text='移除序列号输入', command=self.onRemoveInputSN) \
+        .grid(column=3, row=0, sticky=tk.NSEW, padx=5, pady=5)
 
-        tk.Button(tabFrame, text='移除序列号输入', command=self.onRemoveInputSN) \
-        .grid(column=3, row=row, sticky=tk.NSEW, padx=5, pady=5)
-
+        # 导出工具组框
         row += 1
-        ttk.Separator(tabFrame, orient='horizontal') \
-        .grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
+        exportBox = tk.LabelFrame(tabFrame, text='导出工具', padx=10, pady=10)
+        exportBox.grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
+        for i in range(4):
+            exportBox.grid_columnconfigure(i, weight=1)
+        # 组框内部组件：
+        cRow = 0
+        self.fileOptionVar = tk.IntVar(self, value=MainUI.FileOptions.NOSPECIFIED)
+        tk.Radiobutton(exportBox, text='默认目录', variable=self.fileOptionVar, value=MainUI.FileOptions.NOSPECIFIED, command=self.onUpdate) \
+        .grid(column=0, row=cRow, sticky=tk.W)
+        # ---
+        cRow += 1
+        tk.Radiobutton(exportBox, text='指定目录', variable=self.fileOptionVar, value=MainUI.FileOptions.DIRECTORY, command=self.onUpdate) \
+        .grid(column=0, row=cRow, sticky=tk.W)
+        self.outputDirVar = tk.StringVar(self, value='')
+        tk.Entry(exportBox, textvariable=self.outputDirVar, state='readonly', font=("Arial", 10), bd=2) \
+        .grid(column=1, row=cRow, columnspan=2, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(exportBox, text='选择输出目录', command=self.onSelectOutputDir) \
+        .grid(column=3, row=cRow, sticky=tk.NSEW, padx=5, pady=5)
+        # ---
+        cRow += 1
+        tk.Radiobutton(exportBox, text='指定文件', variable=self.fileOptionVar, value=MainUI.FileOptions.FILE, command=self.onUpdate) \
+        .grid(column=0, row=cRow, sticky=tk.W)
+        self.outputFileVar = tk.StringVar(self, value='')
+        tk.Entry(exportBox, textvariable=self.outputFileVar, state='readonly', font=("Arial", 10), bd=2) \
+        .grid(column=1, row=cRow, columnspan=2, sticky=tk.NSEW, padx=5, pady=5)
 
-        # 第五行
-        row += 1
-        tk.Label(tabFrame, text='辅助工具' + '👇'*20) \
-        .grid(column=0, row=row, columnspan=4, sticky=tk.W)
+        selectFileButton = tk.Menubutton(exportBox, text='选择输出文件 ▾', relief=tk.SOLID, bd=1)
+        selectFileButton.grid(column=3, row=cRow, sticky=tk.NSEW, padx=5, pady=5)
+        menu = tk.Menu(selectFileButton, tearoff=0)
+        menu.add_command(label="📁 新建文件导出（覆盖/新建）", command=lambda: self.onSelectOutputFile())
+        menu.add_command(label="📝 追加到已有文件（支持只读文件）", command=lambda: self.onSelectOutputFile(True))
+        selectFileButton['menu'] = menu
 
+        cRow += 1
+        tk.Button(exportBox, text='添加本工具', command=self.onAddCmd) \
+        .grid(column=0, row=cRow, sticky=tk.NSEW, padx=5, pady=5)
+        self.isSaveProg = tk.BooleanVar(self, value=True)
+        tk.Checkbutton(exportBox, text='保存测量程序副本', variable=self.isSaveProg, command=self.onUpdate) \
+        .grid(column=1, row=cRow, sticky=tk.W)
+        self.isExportPdf = tk.BooleanVar(self, value=False)
+        tk.Checkbutton(exportBox, text='保存PDF报告', variable=self.isExportPdf, command=self.onUpdate) \
+        .grid(column=2, row=cRow, sticky=tk.W)
+        tk.Button(exportBox, text='移除本工具', command=self.onRemoveTool) \
+        .grid(column=3, row=cRow, sticky=tk.NSEW, padx=5, pady=5)
+
+        # 辅助工具组框
         row += 1
-        tk.Button(tabFrame, text='读取所有命令信息', command=self.onReadAllCmds) \
-        .grid(column=0, row=row, sticky=tk.NSEW, padx=5, pady=5)
-        tk.Button(tabFrame, text='同步PDF属性时间', command=self.onSyncPdfTime) \
-        .grid(column=1, row=row, sticky=tk.NSEW, padx=5, pady=5)
+        auxiliaryBox = tk.LabelFrame(tabFrame, text='辅助工具', padx=10, pady=10)
+        auxiliaryBox.grid(column=0, row=row, columnspan=4, sticky=tk.NSEW)
+        for i in range(4):
+            auxiliaryBox.grid_columnconfigure(i, weight=1)
+
+        cRow = 0
+        tk.Button(auxiliaryBox, text='读取所有命令信息', command=self.onReadAllCmds) \
+        .grid(column=0, row=cRow, sticky=tk.NSEW, padx=5, pady=5)
+        tk.Button(auxiliaryBox, text='同步PDF属性时间', command=self.onSyncPdfTime) \
+        .grid(column=1, row=cRow, sticky=tk.NSEW, padx=5, pady=5)
 
     def onSyncPdfTime(self):
         filePaths = filedialog.askopenfilenames(
@@ -195,14 +222,44 @@ class MainUI(tk.Frame):
         else:
             TopMessagebox.show('错误', '未找到测量程序文件', TopMessagebox.ERROR)
 
-    def onSelectOutputPath(self):
+    def onSelectOutputDir(self):
         path = filedialog.askdirectory(title='选择输出路径')
         if path != '':
             path = os.path.normpath(path)
-            self.outputPathVar.set(path)
+            self.outputDirVar.set(path)
+            self.fileOptionVar.set(MainUI.FileOptions.DIRECTORY)
+            self.onUpdate()
+
+    def onSelectOutputFile(self, isAppend: bool = False):
+        """
+        选择输出文件路径
+        
+        Args:
+            isAppend (bool): 
+                - False (默认): 新建/保存模式
+                - True: 追加模式
+        """
+        if isAppend:
+            path = filedialog.askopenfilename(
+                title='选择要追加数据的已有文件',
+                filetypes=[('Excel 工作簿', '*.xlsx'), ('所有文件', '*.*')]
+            )
+        else:
+            path = filedialog.asksaveasfilename(
+                title='选择或新建输出文件',
+                defaultextension='.xlsx',
+                filetypes=[('Excel 工作簿', '*.xlsx')],
+                confirmoverwrite=False
+            )
+        
+        if path != '':
+            path = os.path.normpath(path)
+            self.outputFileVar.set(path)
+            self.fileOptionVar.set(MainUI.FileOptions.FILE)
+            self.onUpdate()
 
     def onNoOutputPath(self):
-        self.outputPathVar.set('')
+        self.outputDirVar.set('')
 
     def onRemoveInputSN(self):
         self.writeCmdText('正在移除......', False)
@@ -269,11 +326,16 @@ class MainUI(tk.Frame):
         """
         文件选项单选按钮事件回调
         """
-        outputPath = self.outputPathVar.get().strip()
-        if outputPath != '':
-            text = f'-d "{outputPath}"'
+        fileOption = self.fileOptionVar.get()
+        if fileOption == MainUI.FileOptions.NOSPECIFIED:
+            text = '-n'
+        elif fileOption == MainUI.FileOptions.DIRECTORY:
+            text = f'-d "{self.outputDirVar.get().strip()}"'
+        elif fileOption == MainUI.FileOptions.FILE:
+            text = f'-f "{self.outputFileVar.get().strip()}"'
         else:
-            text = ' -n'
+            TopMessagebox.show('错误', '未知的文件选项', TopMessagebox.ERROR)
+
         if not self.isSaveProg.get():
             text += ' --no-prog'
         if self.isExportPdf.get():
@@ -285,7 +347,7 @@ class MainUI(tk.Frame):
         """
         向 PC-DMIS 中添加外部命令
         """
-        outputPath = self.outputPathVar.get().strip()
+        outputPath = self.outputDirVar.get().strip()
         if outputPath != '' and not os.path.exists(outputPath):
             TopMessagebox.show('警告', '输出路径不存在，请重新选择', TopMessagebox.WARNING)
             return
@@ -321,6 +383,7 @@ class Application:
         fileGroup = parser.add_mutually_exclusive_group(required=True)
         fileGroup.add_argument('-n', action='store_true', help='不指定导出目录（默认工具目录下data文件夹中）')
         fileGroup.add_argument('-d', '--directory', type=str, help='指定导出目录')
+        fileGroup.add_argument('-f', '--file', type=str, help='指定导出文件')
 
         parser.add_argument('-ep', '--export-pdf', action='store_true', help='导出PDF')
         parser.add_argument('-np', '--no-prog', action='store_true', help='不保存测量程序文件')
@@ -330,17 +393,21 @@ class Application:
     @staticmethod
     def cmdMode():
         args = Application.argumentParser()
-        dataPath = args.directory
-        if dataPath is not None:
-            try:
-                os.makedirs(dataPath, exist_ok=True)
-            except Exception:
-                dataPath = ''
-                errorMsg = traceback.format_exc()
-                logging.error(errorMsg)
-        else:
-            dataPath = ''
-        dataprocessor.convertPcdCsvToExcel(dataPath=dataPath, noProg=args.no_prog, exportPdf=args.export_pdf)
+        outputDir = args.directory
+        outputFile = args.file
+        try:
+            if outputFile is not None:
+                outputFile = outputFile.strip()
+                outputFileDir = os.path.dirname(outputFile)
+                os.makedirs(outputFileDir, exist_ok=True)
+                outputDir = ''
+            elif outputDir is not None:
+                outputDir = outputDir.strip()
+                os.makedirs(outputDir, exist_ok=True)
+                outputFile = ''
+        except Exception as e:
+            outputDir = ''
+        dataprocessor.convertPcdCsvToExcel(outputDir=outputDir, outputFile=outputFile, noProg=args.no_prog, exportPdf=args.export_pdf)
 
     @staticmethod
     def uiMode():
@@ -350,7 +417,7 @@ class Application:
         master.title(constants.Basic.projectName)
 
         width = 756
-        height = 370
+        height = 540
         defaultX = int((master.winfo_screenwidth() - width) / 2)
         defaultY = int((master.winfo_screenheight() - height) / 2)
         master.geometry(f'{width}x{height}+{defaultX}+{defaultY}')

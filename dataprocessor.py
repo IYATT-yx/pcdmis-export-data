@@ -309,12 +309,13 @@ def appendSummaryRecord(summaryCsvDir: str, sn: str, fullProgName: str, excelFil
         if os.path.exists(summaryCsvPath):
             Common.setFileReadOnly(summaryCsvPath, True)
 
-def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMIS-TEMP.csv', decimalPlaces: int = 4, sheetName: str = '导出数据', noProg: bool = False, exportPdf: bool = False):
+def convertPcdCsvToExcel(outputDir: str = '', outputFile: str = '', csvFilePath: str = r'C:\Temp\PC-DMIS-TEMP.csv', decimalPlaces: int = 4, sheetName: str = '导出数据', noProg: bool = False, exportPdf: bool = False):
     r"""
     将 PC-DMIS 中导出的原始 CSV 文件转换为 Excel 文件。
 
     Args:
-        dataPath (str): 数据文件保存目录，默认为空，表示使用默认目录。
+        outputDir (str): 数据文件保存目录，默认为空。outputDir 和 outputFile 都为空时，数据文件保存在默认目录
+        outputFile (str): 数据文件名称，默认为空。outputDir 和 outputFile 都为空时，数据文件保存在默认目录
         csvFilePath (str): PC-DMIS 导出的 CSV 文件路径，默认为 'C:\Temp\PC-DMIS-TEMP.csv'。
         decimalPlaces (int): 测量数据保留的小数位数，默认为 4。
         sheetName (str): Excel 工作表名称，默认为 '导出数据'。
@@ -370,24 +371,37 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     currentDataTime: str = nowObj.strftime('%Y%m%d_%H%M%S')
 
     # 数据文件保存目录
-    if dataPath.strip() == '':
-        dataPath = constants.Path.defaultDataPath
-    excelDir = os.path.join(dataPath, progNameWithoutExt) # 工具可执行文件目录下的 data 目录下，对应测量程序名目录下
-    excelFilename = f'{progNameWithoutExt}({versionString}).xlsx'
-    pdfDir = os.path.join(excelDir, 'PDF')
-    pdfFilename = f'{progNameWithoutExt}({SN})({currentDataTime}).pdf'
-    excelFilePath = Common.longPath(os.path.join(excelDir, excelFilename))
-    pdfFilePath = os.path.join(pdfDir, pdfFilename)
-    progBackupFilename = f'{progNameWithoutExt}({versionString})({SN})({currentDataTime}).PRG'
-    progBackupDir = os.path.join(excelDir, 'prog')
-    progBackupPath = Common.longPath(os.path.join(progBackupDir, progBackupFilename))
-
-    if not os.path.exists(excelDir):
+    outputDir = outputDir.strip()
+    outputFile = outputFile.strip()
+    if outputFile != '':
+        excelDir = os.path.dirname(outputFile)
         os.makedirs(excelDir, exist_ok=True)
+        excelStemName = Path(outputFile).stem
+        pdfDir = os.path.join(excelDir, 'PDF')
+        pdfFilename = f'{excelStemName}({SN})({currentDataTime}).pdf'
+        excelFilePath = outputFile
+        pdfFilePath = os.path.join(pdfDir, pdfFilename)
+        progBackupFilename = f'{excelStemName}({versionString})({SN})({currentDataTime}).PRG'
+        progBackupDir = os.path.join(excelDir, 'prog')
+        progBackupPath = os.path.join(progBackupDir, progBackupFilename)
+    else:
+        if outputDir == '':
+            outputDir = constants.Path.defaultDataPath
+        excelDir = os.path.join(outputDir, progNameWithoutExt)
+        excelFilename = f'{progNameWithoutExt}({versionString}).xlsx'
+        pdfDir = os.path.join(excelDir, 'PDF')
+        pdfFilename = f'{progNameWithoutExt}({SN})({currentDataTime}).pdf'
+        excelFilePath = os.path.join(excelDir, excelFilename)
+        pdfFilePath = os.path.join(pdfDir, pdfFilename)
+        progBackupFilename = f'{progNameWithoutExt}({versionString})({SN})({currentDataTime}).PRG'
+        progBackupDir = os.path.join(excelDir, 'prog')
+        progBackupPath = os.path.join(progBackupDir, progBackupFilename)
+
+    os.makedirs(excelDir, exist_ok=True)
+    os.makedirs(constants.Path.defaultDataPath, exist_ok=True)
 
     if exportPdf:
-        if not os.path.exists(pdfDir):
-            os.makedirs(pdfDir, exist_ok=True)
+        os.makedirs(pdfDir, exist_ok=True)
         pd = PcdmisTools()
         pd.connectPcDmis()
         pd.setPdfPathVar(pdfFilePath)
@@ -396,8 +410,7 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
     progBackupSuccess = False
     if not noProg:
         try:
-            if not os.path.exists(progBackupDir):
-                os.makedirs(progBackupDir, exist_ok=True)
+            os.makedirs(progBackupDir, exist_ok=True)
             shutil.copy2(fullProgName, progBackupPath)
             Common.setFileReadOnly(progBackupPath)
             progBackupSuccess = True
@@ -511,7 +524,7 @@ def convertPcdCsvToExcel(dataPath: str = '', csvFilePath: str = r'C:\Temp\PC-DMI
 
     # 追加写入汇总 CSV 文件 (保存在数据根目录下)
     appendSummaryRecord(
-        summaryCsvDir=dataPath,
+        summaryCsvDir=constants.Path.defaultDataPath,
         sn=SN,
         fullProgName=fullProgName,
         excelFilePath=excelFilePath,
